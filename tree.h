@@ -37,11 +37,11 @@ public:
 		karthyTree_t *root = NULL;
 	}
 
-	karthyNodeData_t* create_node(int x, int y, int type, double Q);
-	karthynode_t* create_karthy(int x, int y, int type, double Q);
-	void add2list(list<karthynode_t> *&tree, int x, int y, int type, double Q);
-	void addnewlist(list<karthynode_t> *& tree);
-	void add2list(list<karthynode_t> *& tree, karthynode_t *& newlist);
-	void delete_list(list<karthynode_t> *& tree, list<karthynode_t> *& newlist);
+	karthyNodeData_t* create_node(int x, int y, int type, double Q); //create a new data
+	karthynode_t* create_karthy(int x, int y, int type, double Q); // create a new karthy node 
+	void add2list(list<karthynode_t> *&tree, int x, int y, int type, double Q);// add new karthynode to list with input is data
+	void add2list(list<karthynode_t> *& tree, karthynode_t *& newlist); // add new karthynode to list with input karthynode
+	void addnewlist(list<karthynode_t> *& tree);// add new list child with no data
+	void delete_list(list<karthynode_t> *& tree, list<karthynode_t> *& newlist);// detele brand from newlist with tree is father of newlist
 };
 #endif
