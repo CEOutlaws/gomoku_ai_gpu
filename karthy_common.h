@@ -32,7 +32,6 @@ namespace karthy
 		NO_PLAYER = 2
 	};
 
-	typedef Point_<char> Point2c;
 	typedef Point2i index;
 	typedef Point2i gamemove;
 }
