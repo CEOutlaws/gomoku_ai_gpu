@@ -25,7 +25,6 @@ namespace karthy
 
 		GomokuPVE* _game;
 		DecisionTree decisionTree;
-
 		//build DecisionTree from root (the current game board state)
 		void buildDecisionTree(void);
 		//clear the content in DecisionTree
@@ -33,7 +32,7 @@ namespace karthy
 		//add availble next state node (available child node)
 		void addAvailableNextNode(DecisionNode* toState, uint8_t depth);
 		//check symmetric for reduction
-		bool isSymmetric(forward_list<Node*>* currentNextNodeList, Move nextMoveToCheck);
+		bool isSymmetric(forward_list<Node*>* currentNextNodeList, Move nextMoveToCheck, BoxStatus newBoxStatus);
 
 	public:
 		//AI's playing role

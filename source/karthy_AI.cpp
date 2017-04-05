@@ -1,7 +1,17 @@
 #include "karthy_AI.h"
 
 using namespace karthy;
-
+void printBoard(Mat board)
+{
+	for (int i = 0; i < board.cols; i++)
+	{
+		for (int j = 0; j < board.rows; j++)
+		{
+			printf("%d", board.at<uchar>(Point2i(i, j)));
+		}
+		printf("\n");
+	}
+}
 karthy::GomokuAI::GomokuAI(GomokuPVE* pveGame, uint8_t depth)
 {
 	player = Player::NO_PLAYER;
@@ -61,7 +71,7 @@ void karthy::GomokuAI::addAvailableNextNode(DecisionNode* toState, uint8_t depth
 
 				Move& nextMove = boxIndex;
 
-				if (isSymmetric(toState->childList, nextMove)) { continue; }
+				if (isSymmetric(toState->childList, nextMove, (BoxStatus)(toState->data->type))) { continue; }
 
 				_game->latestMove = nextMove;
 				_game->board.setBoxStatus(boxIndex, (BoxStatus)(toState->data->type));
@@ -111,8 +121,91 @@ void karthy::GomokuAI::addAvailableNextNode(DecisionNode* toState, uint8_t depth
 		}
 	}
 }
-
-bool karthy::GomokuAI::isSymmetric(forward_list<Node*>* currentNextNodeList, Move nextMoveToCheck)
+bool isEqual(const Mat mat1, const Mat mat2) {
+	Mat diff;
+	compare(mat1, mat2, diff, CMP_NE);
+	int nonZero = countNonZero(diff);
+	return nonZero == 0;
+}
+Mat rotateBoard(Mat board, double angle) {
+	Mat dst;
+	Point2i ptCp(board.cols*0.5, board.rows*0.5);
+	//gpu::rotate
+	Mat temp = getRotationMatrix2D(ptCp, angle, 1.0);
+	warpAffine(board, dst, temp, board.size(), cv::INTER_CUBIC); //Nearest is too rough 
+	return dst;
+}
+bool karthy::GomokuAI::isSymmetric(forward_list<Node*>* currentNextNodeList, Move nextMoveToCheck, BoxStatus newBoxStatus)
 {
+	if (currentNextNodeList->empty() == true) return false;
+	for (forward_list<Node*>::iterator it = currentNextNodeList->begin(); it != currentNextNodeList->end(); ++it)
+	{
+		// board cho buoc di da duoc add
+		Mat boardExistMove = _game->board.boxStatus.clone();
+
+		boardExistMove.at<uchar>(Point2i((*it)->data->x,(*it)->data->y)) = (uchar)newBoxStatus;
+		
+		Mat boardFutureMove = _game->board.boxStatus.clone();
+		boardFutureMove.at<uchar>(Point2i(nextMoveToCheck)) = (uchar)newBoxStatus;
+
+		Mat boardRotate90 = rotateBoard(boardFutureMove, 90);
+		if (isEqual(boardExistMove, boardRotate90))
+		{
+			return true;
+		}
+		//boardRotate90.release();
+		
+		Mat boardRotate180 = rotateBoard(boardFutureMove, 180);
+		if (isEqual(boardExistMove, boardRotate180))
+		{
+			return true;
+		}
+		//boardRotate180.release();
+
+		Mat boardRotate270 = rotateBoard(boardFutureMove, 270);
+		if (isEqual(boardExistMove, boardRotate270))
+		{
+			return true;
+		}
+		//boardRotate270.release();
+
+		Mat boardFlip  = boardFutureMove.clone(); 
+		//flip(board, board, 2);
+		// 0: lap theo truc dung
+		// 1: theo truc ngang
+		//gpu::flip(boardFlip, boardFutureMove, 0);
+		flip(boardFlip, boardFutureMove, 0);
+		
+		if (isEqual(boardExistMove, boardFlip)) 
+		{
+			printBoard(boardExistMove);
+			printBoard(boardFlip);
+			return true;
+		}
+
+		boardRotate90 = rotateBoard(boardFlip, 90);
+		if (isEqual(boardExistMove, boardRotate90))
+		{
+			return true;
+		}
+		boardRotate90.release();
+
+		flip(boardFlip, boardFutureMove, 1);
+
+		if (isEqual(boardExistMove, boardFlip))
+		{
+			return true;
+		}
+
+		boardRotate90 = rotateBoard(boardFlip, 90);
+		if (isEqual(boardExistMove, boardRotate90))
+		{
+			return true;
+		}
+		boardRotate90.release();
+		
+	}
+		
+	
 	return false;
 }
