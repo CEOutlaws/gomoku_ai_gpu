@@ -22,7 +22,12 @@ namespace karthy
 			const double DRAW = 0.0;
 			const double DEFAULT = 0.0;
 		} Score;
-
+		class Evalute
+		{
+		public:
+			double grammar = 0.9;
+			double anpha = 0.9;
+		}Evalute;
 		GomokuPVE* _game;
 		DecisionTree decisionTree;
 		//build DecisionTree from root (the current game board state)
@@ -33,7 +38,11 @@ namespace karthy
 		void addAvailableNextNode(DecisionNode* toState, uint8_t depth);
 		//check symmetric for reduction
 		bool isSymmetric(forward_list<Node*>* currentNextNodeList, Move nextMoveToCheck, BoxStatus newBoxStatus);
-
+		//calculate Q match
+		void estimateNode(Node* currentNode, double reward);
+		void estimateDecisionTree(void);
+		//select best Q
+		DecisionNode* selectBestQ(void);
 	public:
 		//AI's playing role
 		Player player; 

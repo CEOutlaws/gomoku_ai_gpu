@@ -36,7 +36,11 @@ void karthy::GomokuAI::takeTurn(void)
 	this->buildDecisionTree();
 
 	/////this policy is going to be replaced with Qlearning
-	DecisionNode* selectedNextMove = this->decisionTree.root->childList->front();
+
+	estimateDecisionTree();
+	DecisionNode* selectedNextMove = selectBestQ();
+	//DecisionNode* selectedNextMove = this->decisionTree.root->childList->front();
+
 	//////////////////////////////
 
 	cv::putText(_game->gameFrame, text, textOrg, fontFace, fontScale, BACKGROUND_COLOR, thickness, 8);
@@ -208,4 +212,76 @@ bool karthy::GomokuAI::isSymmetric(forward_list<Node*>* currentNextNodeList, Mov
 		
 	
 	return false;
+}
+void karthy::GomokuAI::estimateNode(Node* currentNode, double reward)
+{
+	//if (currentNode == NULL) return;
+
+	if (currentNode == decisionTree.root)
+	{
+		if (currentNode->childList != NULL)
+		{
+			for (forward_list<Node*>::iterator it = currentNode->childList->begin(); it != currentNode->childList->end(); ++it)
+			{
+				estimateNode((*it), reward);
+			}
+		}
+		return;
+	}
+	if (currentNode->childList!=NULL) 
+	{
+		double maxQ = 0;
+		for (forward_list<Node*>::iterator it = currentNode->childList->begin(); it != currentNode->childList->end(); ++it)
+		{
+			if ((*it)->data->Q > maxQ)
+			{
+				maxQ = (*it)->data->Q;
+			}
+		}
+		currentNode->data->Q = currentNode->data->Q +
+			Evalute.anpha *	(reward + Evalute.grammar * maxQ - currentNode->data->Q);
+	}
+	else
+	{
+		currentNode->data->Q = currentNode->data->Q +
+			Evalute.anpha *	(reward - currentNode->data->Q);
+	}
+	if (currentNode->childList!=NULL)
+	{
+		for (forward_list<Node*>::iterator it = currentNode->childList->begin(); it != currentNode->childList->end(); ++it)
+		{
+			estimateNode((*it), reward*0.9);
+		}
+	}
+}
+void karthy::GomokuAI::estimateDecisionTree()
+{
+	for (int i = 0; i < 100; i++)
+	{
+		estimateNode(decisionTree.root, Score.WIN / 10.0);
+	}
+}
+karthy::GomokuAI::DecisionNode* karthy::GomokuAI::selectBestQ()
+{
+	DecisionNode *bestNode = NULL;
+	
+	if (!decisionTree.root->childList->empty())
+	{
+		for (forward_list<Node*>::iterator it = decisionTree.root->childList->begin(); it != decisionTree.root->childList->end(); ++it)
+		{
+			if (bestNode==NULL)
+			{
+				bestNode = (*it);
+			}
+			else if ((*it)->data->Q > bestNode->data->Q)
+			{
+				bestNode = (*it);
+			}
+		}
+	}
+	else
+	{
+		printf("Error on selectBestQ");
+	}
+	return bestNode;
 }
