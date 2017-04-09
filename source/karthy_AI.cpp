@@ -75,7 +75,7 @@ void karthy::GomokuAI::addAvailableNextNode(DecisionNode* toState, uint8_t depth
 
 				Move& nextMove = boxIndex;
 
-				if (isSymmetric(toState->childList, nextMove, (BoxStatus)(toState->data->type))) { continue; }
+				if (isSymmetric(toState->childList, nextMove, (BoxStatus)(toState->data->type))) { printf("OK\n"); continue; }
 
 				_game->latestMove = nextMove;
 				_game->board.setBoxStatus(boxIndex, (BoxStatus)(toState->data->type));
@@ -152,61 +152,66 @@ bool karthy::GomokuAI::isSymmetric(forward_list<Node*>* currentNextNodeList, Mov
 		Mat boardFutureMove = _game->board.boxStatus.clone();
 		boardFutureMove.at<uchar>(Point2i(nextMoveToCheck)) = (uchar)newBoxStatus;
 
-		Mat boardRotate90 = rotateBoard(boardFutureMove, 90);
-		if (isEqual(boardExistMove, boardRotate90))
+		/*
+		debug
+		printBoard(boardExistMove);
+		printBoard(boardFutureMove);
+		printf("/////////\n");*/
+		//rotate 90
+		Mat boardRotate = rotateBoard(boardFutureMove, 90);
+		if (isEqual(boardExistMove, boardRotate))
 		{
 			return true;
 		}
 		//boardRotate90.release();
 		
-		Mat boardRotate180 = rotateBoard(boardFutureMove, 180);
-		if (isEqual(boardExistMove, boardRotate180))
+		//rotate 180
+		boardRotate = rotateBoard(boardFutureMove, 90);
+		if (isEqual(boardExistMove, boardRotate))
 		{
 			return true;
 		}
-		//boardRotate180.release();
 
-		Mat boardRotate270 = rotateBoard(boardFutureMove, 270);
-		if (isEqual(boardExistMove, boardRotate270))
+		//rotate 270
+		boardRotate = rotateBoard(boardFutureMove, 90);
+		if (isEqual(boardExistMove, boardRotate))
 		{
 			return true;
 		}
-		//boardRotate270.release();
 
 		Mat boardFlip  = boardFutureMove.clone(); 
 		//flip(board, board, 2);
 		// 0: lap theo truc dung
 		// 1: theo truc ngang
 		//gpu::flip(boardFlip, boardFutureMove, 0);
-		flip(boardFlip, boardFutureMove, 0);
-		
+		flip(boardFutureMove, boardFlip, 0);
+		/*printf("*******\n");
+		printBoard(boardFlip);
+		printf("*******\n");*/
 		if (isEqual(boardExistMove, boardFlip)) 
 		{
-			printBoard(boardExistMove);
-			printBoard(boardFlip);
 			return true;
 		}
 
-		boardRotate90 = rotateBoard(boardFlip, 90);
-		if (isEqual(boardExistMove, boardRotate90))
-		{
-			return true;
-		}
-		boardRotate90.release();
-
-		flip(boardFlip, boardFutureMove, 1);
-
-		if (isEqual(boardExistMove, boardFlip))
+		boardRotate = rotateBoard(boardFlip, 90);
+		if (isEqual(boardExistMove, boardRotate))
 		{
 			return true;
 		}
 
-		boardRotate90 = rotateBoard(boardFlip, 90);
-		if (isEqual(boardExistMove, boardRotate90))
+		boardRotate = rotateBoard(boardFlip, 180);
+
+		if (isEqual(boardExistMove, boardRotate))
 		{
 			return true;
 		}
-		boardRotate90.release();
+
+		boardRotate = rotateBoard(boardFlip, 270);
+		if (isEqual(boardExistMove, boardRotate))
+		{
+			return true;
+		}
+		boardRotate.release();
 		
 	}
 		
