@@ -50,13 +50,10 @@ namespace karthy
 		//add availble next state node (available child node)
 		void addAvailableAction(State* toState, uint8_t depth);
 
-		//check symmetric for reduction
+		//check symmetric for reduction/mapping
 		bool isSymmetric(forward_list<Edge*>* currentNextNodeList, Move nextMoveToCheck, BoxStatus newBoxStatus);
-		/*
-		*given 2 board
-		*check if symetric
-		*/
-		bool isSymmetric(Mat boxStatus1, Mat boxStatus2);
+		bool isSymmetric(GomokuBoard& board1, GomokuBoard& board2);
+		bool isSymmetric(Mat& boxStatus1, Mat& boxStatus2);
 
 		//calculate Q match
 		void estimateNode(Node* currentNode, double reward);

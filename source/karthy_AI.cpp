@@ -234,6 +234,85 @@ bool karthy::GomokuAI::isSymmetric(forward_list<Edge*>* currentNextNodeList, Mov
 	return false;
 }
 
+bool karthy::GomokuAI::isSymmetric(GomokuBoard& board1, GomokuBoard& board2)
+{
+	return isSymmetric(board1.boxStatus, board2.boxStatus);
+}
+
+
+bool karthy::GomokuAI::isSymmetric(Mat& boxStatus1, Mat& boxStatus2)
+{
+	/*
+	debug
+	printBoard(boxStatus2);
+	printBoard(boxStatus1);
+	printf("/////////\n");
+	*/
+
+	if (isEqual(boxStatus2, boxStatus1))
+	{
+		return true;
+	}
+
+	//rotate 90
+	Mat boardRotate = rotateBoard(boxStatus1, 90);
+	if (isEqual(boxStatus2, boardRotate))
+	{
+		return true;
+	}
+	//boardRotate90.release();
+
+	//rotate 180
+	boardRotate = rotateBoard(boxStatus1, 180);
+	if (isEqual(boxStatus2, boardRotate))
+	{
+		return true;
+	}
+
+	//rotate 270
+	boardRotate = rotateBoard(boxStatus1, 270);
+	if (isEqual(boxStatus2, boardRotate))
+	{
+		return true;
+	}
+
+	Mat boardFlip = boxStatus1.clone();
+	//flip(board, board, 2);
+	// 0: lap theo truc dung
+	// 1: theo truc ngang
+	//gpu::flip(boardFlip, boxStatus1, 0);
+	flip(boxStatus1, boardFlip, 0);
+	/*printf("*******\n");
+	printBoard(boardFlip);
+	printf("*******\n");*/
+	if (isEqual(boxStatus2, boardFlip))
+	{
+		return true;
+	}
+
+	boardRotate = rotateBoard(boardFlip, 90);
+	if (isEqual(boxStatus2, boardRotate))
+	{
+		return true;
+	}
+
+	boardRotate = rotateBoard(boardFlip, 180);
+
+	if (isEqual(boxStatus2, boardRotate))
+	{
+		return true;
+	}
+
+	boardRotate = rotateBoard(boardFlip, 270);
+	if (isEqual(boxStatus2, boardRotate))
+	{
+		return true;
+	}
+
+	boardRotate.release();
+	return false;
+}
+
 void karthy::GomokuAI::estimateNode(Node* currentNode, double reward)
 {
 	/*
@@ -309,7 +388,7 @@ uint64_t karthy::GomokuAI::locateCurrentStateId(Move& adversaryMove, GomokuBoard
 			const Move move = Move((*it)->x, (*it)->y);
 			this->myGame->board.setBoxStatus(move, (BoxStatus)!this->myPlayer);
 
-			bool symetric = isSymmetric(this->myGame->board.boxStatus, gameBoard.boxStatus);
+			bool symetric = isSymmetric(this->myGame->board, gameBoard);
 
 			this->myGame->board.setBoxStatus(move, BoxStatus::HAVE_NO_STONE);
 
@@ -318,85 +397,12 @@ uint64_t karthy::GomokuAI::locateCurrentStateId(Move& adversaryMove, GomokuBoard
 			{
 				result = (*it)->otherNode->getId();
 				this->myGame->executeMove(move);
-				this->clearDecisionTree();
 				break;
 			}
 		}
 	}
 
 	return result;
-}
-
-bool karthy::GomokuAI::isSymmetric(Mat boxStatus1, Mat boxStatus2)
-{
-	/*
-	debug
-	printBoard(boxStatus2);
-	printBoard(boxStatus1);
-	printf("/////////\n");*/
-
-	if (isEqual(boxStatus2, boxStatus1))
-	{
-		return true;
-	}
-
-	//rotate 90
-	Mat boardRotate = rotateBoard(boxStatus1, 90);
-	if (isEqual(boxStatus2, boardRotate))
-	{
-		return true;
-	}
-	//boardRotate90.release();
-
-	//rotate 180
-	boardRotate = rotateBoard(boxStatus1, 90);
-	if (isEqual(boxStatus2, boardRotate))
-	{
-		return true;
-	}
-
-	//rotate 270
-	boardRotate = rotateBoard(boxStatus1, 90);
-	if (isEqual(boxStatus2, boardRotate))
-	{
-		return true;
-	}
-
-	Mat boardFlip = boxStatus1.clone();
-	//flip(board, board, 2);
-	// 0: lap theo truc dung
-	// 1: theo truc ngang
-	//gpu::flip(boardFlip, boxStatus1, 0);
-	flip(boxStatus1, boardFlip, 0);
-	/*printf("*******\n");
-	printBoard(boardFlip);
-	printf("*******\n");*/
-	if (isEqual(boxStatus2, boardFlip))
-	{
-		return true;
-	}
-
-	boardRotate = rotateBoard(boardFlip, 90);
-	if (isEqual(boxStatus2, boardRotate))
-	{
-		return true;
-	}
-
-	boardRotate = rotateBoard(boardFlip, 180);
-
-	if (isEqual(boxStatus2, boardRotate))
-	{
-		return true;
-	}
-
-	boardRotate = rotateBoard(boardFlip, 270);
-	if (isEqual(boxStatus2, boardRotate))
-	{
-		return true;
-	}
-
-	boardRotate.release();
-	return false;
 }
 
 karthy::GomokuAI::Action* karthy::GomokuAI::selectAction(DecisionTree& decisionTree)
