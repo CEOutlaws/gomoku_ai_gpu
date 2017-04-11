@@ -2,34 +2,34 @@
 
 karthy::GomokuPVE::GomokuPVE(uint8_t initBoardCols, uint8_t initStonesToWin) :GomokuPVP::GomokuPVP(initBoardCols, initStonesToWin)
 {
-	karthyCEO = new GomokuAI(this, 10);
+	this->karthyCEO = new GomokuAI(this, 10);
 }
 
 karthy::GomokuPVE::GomokuPVE(uint8_t initBoardCols, uint8_t initStonesToWin, uint8_t aiDepth) : GomokuPVP::GomokuPVP(initBoardCols, initStonesToWin)
 {
-	karthyCEO = new GomokuAI(this, aiDepth);
+	this->karthyCEO = new GomokuAI(this, aiDepth);
 }
-/*
-karthy::gomokuPVE_c::~gomokuPVE_c()
+
+karthy::GomokuPVE::~GomokuPVE(void)
 {
+	delete this->karthyCEO;
 }
-*/
+
 void karthy::GomokuPVE::newGame(void)
 {
 	GomokuPVP::newGame();
-	karthyCEO->player = Player::BLACK_PLAYER;
-	karthyCEO->takeTurn();
+	karthyCEO->getReady(Player::BLACK_PLAYER);
+	this->karthyCEO->takeTurn();
 }
 
 void karthy::GomokuPVE::replay(void)
 {
-	board.setAllBoxStatus(BoxStatus::HAVE_NO_STONE);
 	loadMap();
 	GomokuPVP::newGame();
+	Player karthyPreviousPlayer = karthyCEO->getPlayer();
+	karthyCEO->getReady(!karthyPreviousPlayer);
 
-	karthyCEO->player = !(karthyCEO->player);
-
-	if (karthyCEO->player == Player::BLACK_PLAYER)
+	if (karthyCEO->getPlayer() == Player::BLACK_PLAYER)
 	{
 		karthyCEO->takeTurn();
 	}
@@ -47,7 +47,7 @@ void karthy::GomokuPVE::MouseHandler(int event, int x, int y)
 		{
 			replay();
 		}
-		else if (gameStatus == GameStatus::PLAYING && isPointToBoard(mouseCoor) && activePlayer != karthyCEO->player)
+		else if (gameStatus == GameStatus::PLAYING && isPointToBoard(mouseCoor) && activePlayer != karthyCEO->getPlayer())
 		{
 			Index pointedBoxIndex = GetBoxIndex(mouseCoor);
 
@@ -63,7 +63,5 @@ void karthy::GomokuPVE::MouseHandler(int event, int x, int y)
 			}
 		}
 	}
-
-	
 }
 

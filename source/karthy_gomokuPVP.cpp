@@ -4,14 +4,8 @@ using namespace karthy;
 
 karthy::GomokuPVP::GomokuPVP() :GomokuPVP(19, 5) {}
 
-karthy::GomokuPVP::GomokuPVP(int boardCols, char initStonesToWin)
+karthy::GomokuPVP::GomokuPVP(int boardCols, uint8_t stonesToWin) : GomokuGame(boardCols, stonesToWin)
 {
-	board.colCount = boardCols;
-	board.sideLength = board.colCount * board.boxParam.sideLength;
-	_stonesToWin = initStonesToWin;
-	
-	board.initBoxStatus(board.colCount, board.rowCount);
-	board.setAllBoxStatus(BoxStatus::HAVE_NO_STONE);
 }
 
 karthy::GomokuPVP::~GomokuPVP()
@@ -28,7 +22,7 @@ void karthy::GomokuPVP::MouseHandler(int event, int x, int y)
 		const Point2i mouseCoor(x, y);
 		if (isPointToReplayIcon(mouseCoor))
 		{
-			Replay();
+			replay();
 		}
 		else if (gameStatus == GameStatus::PLAYING && isPointToBoard(mouseCoor))
 		{
@@ -46,13 +40,6 @@ void karthy::GomokuPVP::MouseHandler(int event, int x, int y, int flags, void* u
 {
 	GomokuPVP* pGomokuPVP_c = reinterpret_cast<GomokuPVP*>(userdata);
 	pGomokuPVP_c->MouseHandler(event, x, y);
-}
-
-void karthy::GomokuPVP::newGame(void)
-{
-	activePlayer = Player::BLACK_PLAYER;
-	latestMove = NULL_MOVE;
-	gameStatus = GameStatus::PLAYING;
 }
 
 void karthy::GomokuPVP::loadMap()
@@ -78,12 +65,11 @@ void karthy::GomokuPVP::loadMap()
 
 void karthy::GomokuPVP::showMap(void)
 {
-	imshow("My Window", gameFrame);
+	imshow(WINDOW_NAME, gameFrame);
 	waitKey(1);
 }
-void karthy::GomokuPVP::Replay(void)
+void karthy::GomokuPVP::replay(void)
 {
-	board.setAllBoxStatus(BoxStatus::HAVE_NO_STONE);
 	loadMap();
 	newGame();
 }
@@ -92,7 +78,7 @@ void karthy::GomokuPVP::initGUI(void)
 {
 	loadMap();
 	//set the callback function for any mouse event
-	setMouseCallback("My Window", MouseHandler, this);
+	setMouseCallback(WINDOW_NAME, MouseHandler, this);
 }
 
 Index karthy::GomokuPVP::GetBoxIndex(Point2i mouseCoor)
@@ -111,23 +97,6 @@ bool karthy::GomokuPVP::isPointToBoard(Point2i mouseCoor)
 		board.offset < mouseCoor.y && mouseCoor.y < board.sideLength + board.offset);
 }
 
-void karthy::GomokuPVP::switchPlayer(void)
-{
-	activePlayer = !activePlayer;
-}
-
-Player karthy::GomokuPVP::getWinner(void)
-{
-	Player winner = Player::NO_PLAYER;
-	if (latestMove == NULL_MOVE) { return winner; }
-
-	if (isVerticalEnd() || isHorizontalEnd() || isDiagonalRLEnd() || isDiagonalLREnd())
-	{
-		winner = (Player)(board.getBoxStatus(GomokuPVP::latestMove));
-	}
-
-	return winner;
-}
 
 void karthy::GomokuPVP::handleMoveConsequence(void)
 {
@@ -180,163 +149,25 @@ void karthy::GomokuPVP::handleMoveConsequence(void)
 	}
 }
 
-void karthy::GomokuPVP::executeMove(Index boxIndex)
+void karthy::GomokuPVP::executeMove(Move move)
 {
-	Point2i stoneCoor(boxIndex.x * board.boxParam.sideLength + board.offset + board.boxParam.sideLength / 2, boxIndex.y * board.boxParam.sideLength + board.offset + board.boxParam.sideLength / 2);
+	latestMove = move;
+	board.setBoxStatus(move, (BoxStatus)activePlayer);
+
+	Point2i stoneCoor(move.x * board.boxParam.sideLength + board.offset + board.boxParam.sideLength / 2, move.y * board.boxParam.sideLength + board.offset + board.boxParam.sideLength / 2);
 	if (activePlayer == Player::WHITE_PLAYER)
 	{
-		board.setBoxStatus(boxIndex, BoxStatus::HAVE_WHITE_STONE);
 		circle(gameFrame, stoneCoor, stoneRadius, WHITE_COLOR, CV_FILLED);
 	}
 	else
 	{
-		board.setBoxStatus(boxIndex, BoxStatus::HAVE_BLACK_STONE);
 		circle(gameFrame, stoneCoor, stoneRadius, BLACK_COLOR, CV_FILLED);
 	}
 
-	latestMove = boxIndex;
 	handleMoveConsequence();
 	showMap();
 }
 
-bool karthy::GomokuPVP::isVerticalEnd(void)
-{
-	char stoneCount = 1;
-
-	for (int boxIndexY = latestMove.y + 1; boxIndexY < board.rowCount; boxIndexY++)
-	{
-		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(latestMove.x, boxIndexY)))
-		{
-			break;
-		}
-		else
-		{
-			stoneCount++;
-		}
-	}
-
-	for (int boxIndexY = latestMove.y - 1; boxIndexY >= 0; boxIndexY--)
-	{
-		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(latestMove.x, boxIndexY)))
-		{
-			break;
-		}
-		else
-		{
-			stoneCount++;
-		}
-	}
-	return (stoneCount >= _stonesToWin);
-}
-
-bool karthy::GomokuPVP::isHorizontalEnd(void)
-{
-	char stoneCount = 1;
-
-	for (int boxIndexX = latestMove.x + 1; boxIndexX < board.colCount; boxIndexX++)
-	{
-		BoxStatus a = board.getBoxStatus(Index(boxIndexX, latestMove.y));
-		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(boxIndexX, latestMove.y)))
-		{
-			break;
-		}
-		else
-		{
-			stoneCount++;
-		}
-	}
-
-	for (int boxIndexX = latestMove.x - 1; boxIndexX >= 0; boxIndexX--)
-	{
-		BoxStatus a = board.getBoxStatus(Index(boxIndexX, latestMove.y));
-		BoxStatus b = board.getBoxStatus(latestMove);
-		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(boxIndexX, latestMove.y)))
-		{
-			break;
-		}
-		else
-		{
-			stoneCount++;
-		}
-	}
-	return (stoneCount >= _stonesToWin);
-}
-
-bool karthy::GomokuPVP::isDiagonalLREnd(void)
-{
-	char stoneCount = 1;
-
-	for (
-		int boxIndexX = latestMove.x + 1, boxIndexY = latestMove.y + 1;
-		boxIndexX < board.colCount && boxIndexY < board.rowCount;
-		boxIndexX++, boxIndexY++
-		)
-	{
-		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(boxIndexX, boxIndexY)))
-		{
-			break;
-		}
-		else
-		{
-			stoneCount++;
-		}
-	}
-
-	for (
-		int boxIndexX = latestMove.x - 1, boxIndexY = latestMove.y - 1;
-		boxIndexX >= 0 && boxIndexY >= 0;
-		boxIndexX--, boxIndexY--
-		)
-	{
-		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(boxIndexX, boxIndexY)))
-		{
-			break;
-		}
-		else
-		{
-			stoneCount++;
-		}
-	}
-	return (stoneCount >= _stonesToWin);
-}
-
-bool karthy::GomokuPVP::isDiagonalRLEnd(void)
-{
-	char stoneCount = 1;
-
-	for (
-		int boxIndexX = latestMove.x + 1, boxIndexY = latestMove.y - 1;
-		boxIndexX < board.colCount && boxIndexY >= 0;
-		boxIndexX++, boxIndexY--
-		)
-	{
-		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(boxIndexX, boxIndexY)))
-		{
-			break;
-		}
-		else
-		{
-			stoneCount++;
-		}
-	}
-
-	for (
-		int boxIndexX = latestMove.x - 1, boxIndexY = latestMove.y + 1;
-		boxIndexX >= 0 && boxIndexY < board.rowCount;
-		boxIndexX--, boxIndexY++
-		)
-	{
-		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(boxIndexX, boxIndexY)))
-		{
-			break;
-		}
-		else
-		{
-			stoneCount++;
-		}
-	}
-	return (stoneCount >= _stonesToWin);
-}
 void karthy::GomokuPVP::run(void)
 {
 	initGUI();

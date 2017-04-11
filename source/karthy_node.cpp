@@ -2,15 +2,15 @@
 
 using namespace karthy;
 
-karthy::Node::Node(int initX, int initY, uint8_t initType, double initQ)
+karthy::Node::Node(uint64 id, uint8_t type)
 {
-	NodeData* newNodeData = new NodeData(initX, initY, initType, initQ);
+	NodeData* newNodeData = new NodeData(id, type);
 	initNode(newNodeData);
 }
 
-karthy::Node::Node(NodeData* initNodeData)
+karthy::Node::Node(NodeData* data)
 {
-	initNode(initNodeData);
+	initNode(data);
 }
 
 karthy::Node::~Node()
@@ -19,38 +19,43 @@ karthy::Node::~Node()
 	delete this->data;
 	//this->data = NULL;
 
-	if (this->childList == NULL) { return; }
+	if (this->edgeList == NULL) { return; }
 	//delete childList
-	this->deleteChildList();
+	this->deleteEdgeList();
 	//this->childList = NULL;
+}
+
+uint64_t karthy::Node::getId()
+{
+	return this->data->id;
 }
 
 void karthy::Node::initNode(NodeData* initNodeData)
 {
 	this->data = initNodeData;
-	this->childList = NULL;
+	this->edgeList = NULL;
 }
 
-void karthy::Node::deleteAllChild(void)
+void karthy::Node::deleteAllEdge(void)
 {
-	for (; !(this->childList->empty()); this->childList->pop_front())
+	for (; !(this->edgeList->empty()); this->edgeList->pop_front())
 	{
-		delete this->childList->front();
+		delete this->edgeList->front();
 	}
 }
 
-void karthy::Node::addChild(Node* newChild)
+void karthy::Node::addEdge(Edge* newEdge)
 {
-	if (childList == NULL)
+	if (this->edgeList == NULL)
 	{
-		childList = new forward_list<Node*>;
+		this->edgeList = new forward_list<Edge*>;
 	}
 
-	childList->push_front(newChild);
+	this->edgeList->push_front(newEdge);
 }
 
-void karthy::Node::deleteChildList(void)
+void karthy::Node::deleteEdgeList(void)
 {
-	deleteAllChild();
-	delete this->childList;
+	deleteAllEdge();
+	delete this->edgeList;
 }

@@ -2,79 +2,60 @@
 
 using namespace karthy;
 
-karthy::gomokuPVP_c::gomokuPVP_c()
-{
-	board.colCount = 19;
-	board.sideLength = board.colCount * board.boxParam.sideLength;
-	_stonesToWin = 5;
+karthy::GomokuPVP::GomokuPVP() :GomokuPVP(19, 5) {}
 
-	board.boxStatus = new boxstatus_c *[board.colCount];
-	for (int i = 0; i < board.rowCount; i++)
-	{
-		board.boxStatus[i] = new boxstatus_c[board.rowCount];
-	}
-}
-
-karthy::gomokuPVP_c::gomokuPVP_c(int boardCols, char initStonesToWin)
+karthy::GomokuPVP::GomokuPVP(int boardCols, char initStonesToWin)
 {
 	board.colCount = boardCols;
 	board.sideLength = board.colCount * board.boxParam.sideLength;
 	_stonesToWin = initStonesToWin;
-	board.boxStatus = new boxstatus_c *[board.colCount];
-	for (int i = 0; i < board.rowCount; i++)
-	{
-		board.boxStatus[i] = new boxstatus_c[board.rowCount];
-	}
+	
+	board.initBoxStatus(board.colCount, board.rowCount);
+	board.setAllBoxStatus(BoxStatus::HAVE_NO_STONE);
 }
 
-karthy::gomokuPVP_c::~gomokuPVP_c()
+karthy::GomokuPVP::~GomokuPVP()
 {
-	for (int i = 0; i < board.rowCount; i++)
-	{
-		delete board.boxStatus[i];
-	}
-	delete board.boxStatus;
 }
 
-void karthy::gomokuPVP_c::MouseHandler(int event, int x, int y)
+void karthy::GomokuPVP::MouseHandler(int event, int x, int y)
 {
-	const Point2i mouseCoor(x, y);
 	if (event == EVENT_LBUTTONDOWN ||
 		event == EVENT_RBUTTONDOWN ||
 		event == EVENT_MBUTTONDOWN)
 	{
 		//if in Replay Icon
-		if (IsPointToReplayIcon(mouseCoor))
+		const Point2i mouseCoor(x, y);
+		if (isPointToReplayIcon(mouseCoor))
 		{
 			Replay();
 		}
-		else if (gameStatus == gamestatus_c::PLAYING && IsPointToBoard(mouseCoor))
+		else if (gameStatus == GameStatus::PLAYING && isPointToBoard(mouseCoor))
 		{
-			index pointedBoxIndex = GetBoxIndex(mouseCoor);
+			Index pointedBoxIndex = GetBoxIndex(mouseCoor);
 
-			if (board.GetBoxStatus(pointedBoxIndex) == boxstatus_c::HAVE_NO_STONE)
+			if (board.getBoxStatus(pointedBoxIndex) == BoxStatus::HAVE_NO_STONE)
 			{
-				ExecuteMove(pointedBoxIndex);
+				executeMove(pointedBoxIndex);
 			}
 		}
 	}
 }
 
-void karthy::gomokuPVP_c::MouseHandler(int event, int x, int y, int flags, void* userdata)
+void karthy::GomokuPVP::MouseHandler(int event, int x, int y, int flags, void* userdata)
 {
-	gomokuPVP_c* pGomokuPVP_c = reinterpret_cast<gomokuPVP_c*>(userdata);
+	GomokuPVP* pGomokuPVP_c = reinterpret_cast<GomokuPVP*>(userdata);
 	pGomokuPVP_c->MouseHandler(event, x, y);
 }
 
-void karthy::gomokuPVP_c::NewGame(void)
+void karthy::GomokuPVP::newGame(void)
 {
-	activePlayer = (bool)player_c::BLACK_PLAYER;
-	board.SetAllBoxStatus(boxstatus_c::HAVE_NO_STONE);
-	latestMove = Point2i(-1, -1);
-	gameStatus = gamestatus_c::PLAYING;
+	activePlayer = Player::BLACK_PLAYER;
+	latestMove = NULL_MOVE;
+	gameStatus = GameStatus::PLAYING;
 }
 
-void karthy::gomokuPVP_c::LoadMap()
+void karthy::GomokuPVP::loadMap()
 {
 	gameFrame = imread("caro_background.jpg", 1);
 	for (int pixelX = board.sideLength; pixelX < board.maxSideLength; pixelX++)
@@ -91,70 +72,94 @@ void karthy::gomokuPVP_c::LoadMap()
 			gameFrame.at<Vec3b>(Point(pixelX + board.offset, pixelY + board.offset + board.boxParam.marginThickness)) = BACKGROUND_COLOR;
 		}
 	}
+
+	showMap();
+}
+
+void karthy::GomokuPVP::showMap(void)
+{
 	imshow("My Window", gameFrame);
+	waitKey(1);
+}
+void karthy::GomokuPVP::Replay(void)
+{
+	board.setAllBoxStatus(BoxStatus::HAVE_NO_STONE);
+	loadMap();
+	newGame();
 }
 
-void karthy::gomokuPVP_c::Replay(void)
+void karthy::GomokuPVP::initGUI(void)
 {
-	LoadMap();
-	NewGame();
-}
-
-void karthy::gomokuPVP_c::GUIInit(void)
-{
-	LoadMap();
+	loadMap();
 	//set the callback function for any mouse event
 	setMouseCallback("My Window", MouseHandler, this);
 }
 
-Point2i karthy::gomokuPVP_c::GetBoxIndex(Point2i mouseCoor)
+Index karthy::GomokuPVP::GetBoxIndex(Point2i mouseCoor)
 {
 	return Point2i((mouseCoor.x - board.offset) / board.boxParam.sideLength, (mouseCoor.y - board.offset) / board.boxParam.sideLength);
 }
 
-bool karthy::gomokuPVP_c::IsPointToReplayIcon(Point2i mouseCoor)
+bool karthy::GomokuPVP::isPointToReplayIcon(Point2i mouseCoor)
 {
 	return pow(mouseCoor.x - 1009, 2) + pow(mouseCoor.y - 365, 2) < pow(90, 2);
 }
 
-bool karthy::gomokuPVP_c::IsPointToBoard(Point2i mouseCoor)
+bool karthy::GomokuPVP::isPointToBoard(Point2i mouseCoor)
 {
 	return (board.offset < mouseCoor.x && mouseCoor.x < board.sideLength + board.offset &&
-			board.offset < mouseCoor.y && mouseCoor.y < board.sideLength + board.offset);
+		board.offset < mouseCoor.y && mouseCoor.y < board.sideLength + board.offset);
 }
 
-void karthy::gomokuPVP_c::SwitchPlayer(void)
+void karthy::GomokuPVP::switchPlayer(void)
 {
-	activePlayer = !(activePlayer);
+	activePlayer = !activePlayer;
 }
 
-player_c karthy::gomokuPVP_c::GetWinner(void)
+Player karthy::GomokuPVP::getWinner(void)
 {
-	player_c winner = player_c::NO_PLAYER;
+	Player winner = Player::NO_PLAYER;
+	if (latestMove == NULL_MOVE) { return winner; }
 
-	if (IsVerticalEnd() || IsHorizontalEnd() || IsDiagonalRLEnd() || IsDiagonalLREnd())
+	if (isVerticalEnd() || isHorizontalEnd() || isDiagonalRLEnd() || isDiagonalLREnd())
 	{
-		winner = (player_c)(board.GetBoxStatus(gomokuPVP_c::latestMove));
+		winner = (Player)(board.getBoxStatus(GomokuPVP::latestMove));
 	}
 
 	return winner;
 }
 
-void karthy::gomokuPVP_c::HandleMoveConsequence(void)
+void karthy::GomokuPVP::handleMoveConsequence(void)
 {
-	if (GetWinner() == player_c::NO_PLAYER)
+	Player theWinner = getWinner();
+	if (theWinner == Player::NO_PLAYER)
 	{
-		SwitchPlayer();
+		if (!board.isFullBox())
+		{
+			switchPlayer();
+		}
+		else
+		{
+			gameStatus = GameStatus::ENDED;
+
+			String text = "DRAW";
+			Point textOrg = Point2i(880, 130);
+			Scalar textColor = GRAY_COLOR;
+			int fontFace = FONT_HERSHEY_PLAIN;
+			double fontScale = 6;
+			int thickness = 5;
+			cv::putText(gameFrame, text, textOrg, fontFace, fontScale, textColor, thickness, 8);
+		}
 	}
 	else
 	{
-		gameStatus = gamestatus_c::ENDED;
+		gameStatus = GameStatus::ENDED;
 
 		String text;
 		Point textOrg;
 		Scalar textColor;
 
-		if (GetWinner() == player_c::WHITE_PLAYER)
+		if (theWinner == Player::WHITE_PLAYER)
 		{
 			text = "WHITE WIN";
 			textOrg = Point2i(750, 130);
@@ -175,32 +180,32 @@ void karthy::gomokuPVP_c::HandleMoveConsequence(void)
 	}
 }
 
-void karthy::gomokuPVP_c::ExecuteMove(index boxIndex)
+void karthy::GomokuPVP::executeMove(Index boxIndex)
 {
 	Point2i stoneCoor(boxIndex.x * board.boxParam.sideLength + board.offset + board.boxParam.sideLength / 2, boxIndex.y * board.boxParam.sideLength + board.offset + board.boxParam.sideLength / 2);
-	if (activePlayer == (bool)(player_c::WHITE_PLAYER))
+	if (activePlayer == Player::WHITE_PLAYER)
 	{
-		board.SetBoxStatus(boxIndex, boxstatus_c::HAVE_WHITE_STONE);
+		board.setBoxStatus(boxIndex, BoxStatus::HAVE_WHITE_STONE);
 		circle(gameFrame, stoneCoor, stoneRadius, WHITE_COLOR, CV_FILLED);
 	}
 	else
 	{
-		board.SetBoxStatus(boxIndex, boxstatus_c::HAVE_BLACK_STONE);
+		board.setBoxStatus(boxIndex, BoxStatus::HAVE_BLACK_STONE);
 		circle(gameFrame, stoneCoor, stoneRadius, BLACK_COLOR, CV_FILLED);
 	}
 
 	latestMove = boxIndex;
-	HandleMoveConsequence();
-	imshow("My Window", gameFrame);
+	handleMoveConsequence();
+	showMap();
 }
 
-bool karthy::gomokuPVP_c::IsVerticalEnd(void)
+bool karthy::GomokuPVP::isVerticalEnd(void)
 {
 	char stoneCount = 1;
 
 	for (int boxIndexY = latestMove.y + 1; boxIndexY < board.rowCount; boxIndexY++)
 	{
-		if (board.GetBoxStatus(latestMove) != board.GetBoxStatus(index(latestMove.x, boxIndexY)))
+		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(latestMove.x, boxIndexY)))
 		{
 			break;
 		}
@@ -212,7 +217,7 @@ bool karthy::gomokuPVP_c::IsVerticalEnd(void)
 
 	for (int boxIndexY = latestMove.y - 1; boxIndexY >= 0; boxIndexY--)
 	{
-		if (board.GetBoxStatus(latestMove) != board.GetBoxStatus(index(latestMove.x, boxIndexY)))
+		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(latestMove.x, boxIndexY)))
 		{
 			break;
 		}
@@ -224,14 +229,14 @@ bool karthy::gomokuPVP_c::IsVerticalEnd(void)
 	return (stoneCount >= _stonesToWin);
 }
 
-bool karthy::gomokuPVP_c::IsHorizontalEnd(void)
+bool karthy::GomokuPVP::isHorizontalEnd(void)
 {
 	char stoneCount = 1;
 
 	for (int boxIndexX = latestMove.x + 1; boxIndexX < board.colCount; boxIndexX++)
 	{
-		boxstatus_c a = board.GetBoxStatus(index(boxIndexX, latestMove.y));
-		if (board.GetBoxStatus(latestMove) != board.GetBoxStatus(index(boxIndexX, latestMove.y)))
+		BoxStatus a = board.getBoxStatus(Index(boxIndexX, latestMove.y));
+		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(boxIndexX, latestMove.y)))
 		{
 			break;
 		}
@@ -243,9 +248,9 @@ bool karthy::gomokuPVP_c::IsHorizontalEnd(void)
 
 	for (int boxIndexX = latestMove.x - 1; boxIndexX >= 0; boxIndexX--)
 	{
-		boxstatus_c a = board.GetBoxStatus(index(boxIndexX, latestMove.y));
-		boxstatus_c b = board.GetBoxStatus(latestMove);
-		if (board.GetBoxStatus(latestMove) != board.GetBoxStatus(index(boxIndexX, latestMove.y)))
+		BoxStatus a = board.getBoxStatus(Index(boxIndexX, latestMove.y));
+		BoxStatus b = board.getBoxStatus(latestMove);
+		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(boxIndexX, latestMove.y)))
 		{
 			break;
 		}
@@ -257,7 +262,7 @@ bool karthy::gomokuPVP_c::IsHorizontalEnd(void)
 	return (stoneCount >= _stonesToWin);
 }
 
-bool karthy::gomokuPVP_c::IsDiagonalLREnd(void)
+bool karthy::GomokuPVP::isDiagonalLREnd(void)
 {
 	char stoneCount = 1;
 
@@ -267,7 +272,7 @@ bool karthy::gomokuPVP_c::IsDiagonalLREnd(void)
 		boxIndexX++, boxIndexY++
 		)
 	{
-		if (board.GetBoxStatus(latestMove) != board.GetBoxStatus(index(boxIndexX, boxIndexY)))
+		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(boxIndexX, boxIndexY)))
 		{
 			break;
 		}
@@ -283,7 +288,7 @@ bool karthy::gomokuPVP_c::IsDiagonalLREnd(void)
 		boxIndexX--, boxIndexY--
 		)
 	{
-		if (board.GetBoxStatus(latestMove) != board.GetBoxStatus(index(boxIndexX, boxIndexY)))
+		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(boxIndexX, boxIndexY)))
 		{
 			break;
 		}
@@ -295,7 +300,7 @@ bool karthy::gomokuPVP_c::IsDiagonalLREnd(void)
 	return (stoneCount >= _stonesToWin);
 }
 
-bool karthy::gomokuPVP_c::IsDiagonalRLEnd(void)
+bool karthy::GomokuPVP::isDiagonalRLEnd(void)
 {
 	char stoneCount = 1;
 
@@ -305,7 +310,7 @@ bool karthy::gomokuPVP_c::IsDiagonalRLEnd(void)
 		boxIndexX++, boxIndexY--
 		)
 	{
-		if (board.GetBoxStatus(latestMove) != board.GetBoxStatus(index(boxIndexX, boxIndexY)))
+		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(boxIndexX, boxIndexY)))
 		{
 			break;
 		}
@@ -321,7 +326,7 @@ bool karthy::gomokuPVP_c::IsDiagonalRLEnd(void)
 		boxIndexX--, boxIndexY++
 		)
 	{
-		if (board.GetBoxStatus(latestMove) != board.GetBoxStatus(index(boxIndexX, boxIndexY)))
+		if (board.getBoxStatus(latestMove) != board.getBoxStatus(Index(boxIndexX, boxIndexY)))
 		{
 			break;
 		}
@@ -332,8 +337,8 @@ bool karthy::gomokuPVP_c::IsDiagonalRLEnd(void)
 	}
 	return (stoneCount >= _stonesToWin);
 }
-void karthy::gomokuPVP_c::Run(void)
+void karthy::GomokuPVP::run(void)
 {
-	GUIInit();
-	NewGame();
+	initGUI();
+	newGame();
 }

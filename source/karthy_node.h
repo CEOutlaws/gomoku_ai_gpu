@@ -2,11 +2,13 @@
 #include <forward_list> 
 #include "karthy_nodedata.h"
 #include "karthy_common.h"
+#include "karthy_edge.h"
 
 using namespace std;
 
 namespace karthy 
 {
+	class Edge;
 	class Node
 	{
 	private:
@@ -15,17 +17,18 @@ namespace karthy
 
 	public:
 		NodeData* data;
-		forward_list<Node*>* childList;
+		forward_list<Edge*>* edgeList;
 
-		Node(int x, int y, uint8_t type, double Q);
-		Node(NodeData* initNodeData);
+		Node(uint64 id, uint8_t type);
+		Node(NodeData* data);
 		~Node();
 
-		void addChild(Node* newChild);
+		uint64_t getId();
+		void addEdge(Edge* newEdge);
 		//void DeleteAllChildExcept(node_c* exceptChild);
-		//Delete all child in the childList, but don't delete the childList
-		void deleteChildList(void);
-		void deleteAllChild(void);
+		//Delete all edge in the childList, but don't delete the childList
+		void deleteEdgeList(void);
+		void deleteAllEdge(void);
 	};
 }
 

@@ -16,6 +16,7 @@ namespace karthy
 
 		GomokuPVE(uint8_t initBoardCols, uint8_t initStonesToWin);
 		GomokuPVE(uint8_t initBoardCols, uint8_t initStonesToWin, uint8_t aiDepth);
+		~GomokuPVE(void);
 
 		GomokuAI* karthyCEO;
 		

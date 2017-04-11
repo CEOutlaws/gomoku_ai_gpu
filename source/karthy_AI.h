@@ -3,6 +3,7 @@
 #include "karthy_tree.h"
 #include "karthy_node.h"
 #include "karthy_nodedata.h"
+#include "karthy_edge.h"
 #include "karthy_gomokuPVE.h"
 
 namespace karthy
@@ -11,8 +12,8 @@ namespace karthy
 	class GomokuAI
 	{
 		typedef Tree DecisionTree;
-		typedef Node DecisionNode;
-
+		typedef Node State;
+		typedef Edge Action;
 	private:
 		class Score
 		{
@@ -22,37 +23,65 @@ namespace karthy
 			const double DRAW = 0.0;
 			const double DEFAULT = 0.0;
 		} Score;
-		class Evalute
+
+		class QLearningParameter
 		{
 		public:
 			double grammar = 0.9;
 			double anpha = 0.9;
-		}Evalute;
+		}qLearningParameter;
+
 		GomokuPVE* _game;
 		DecisionTree decisionTree;
+		uint64_t currentStateId;
+		uint64_t stateCount;
+
+		//karthy's View of the game
+		GomokuGame* myGame;
+		//karthy's playing role
+		Player myPlayer;
+
 		//build DecisionTree from root (the current game board state)
 		void buildDecisionTree(void);
+
 		//clear the content in DecisionTree
 		void clearDecisionTree(void);
+
 		//add availble next state node (available child node)
-		void addAvailableNextNode(DecisionNode* toState, uint8_t depth);
+		void addAvailableAction(State* toState, uint8_t depth);
+
 		//check symmetric for reduction
-		bool isSymmetric(forward_list<Node*>* currentNextNodeList, Move nextMoveToCheck, BoxStatus newBoxStatus);
+		bool isSymmetric(forward_list<Edge*>* currentNextNodeList, Move nextMoveToCheck, BoxStatus newBoxStatus);
+		/*
+		*given 2 board
+		*check if symetric
+		*/
+		bool isSymmetric(Mat boxStatus1, Mat boxStatus2);
+
 		//calculate Q match
 		void estimateNode(Node* currentNode, double reward);
 		void estimateDecisionTree(void);
-		//select best Q
-		DecisionNode* selectBestQ(void);
+
+		/*
+		*given latest adversary's move, current game's board
+		*locate current state's ID when karthy take turn
+		*/
+		uint64_t locateCurrentStateId(Move& adversaryMove, GomokuBoard& gameBoard);
+	
+		//given decision tree, select next action
+		Action* selectAction(DecisionTree& decisionTree);
+		Move convertMoveLogicalToPhysical(Move logicalMove);
+
 	public:
-		//AI's playing role
-		Player player; 
 		//number of move to look forward
-		uint8_t depth;	 
+		uint8_t depth;
 
 		//you have to define this->player yourself
 		GomokuAI(GomokuPVE* gomokuPVE, uint8_t depth);
-		~GomokuAI();
+		~GomokuAI(void);
 
 		void takeTurn(void);
+		void getReady(Player myPlayer);
+		Player getPlayer(void);
 	};
 }

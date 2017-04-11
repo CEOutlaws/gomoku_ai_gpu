@@ -2,11 +2,8 @@
 
 using namespace karthy;
 
-
-karthy::NodeData::NodeData(int initX, int initY, uint8_t initType, double initQ)
+karthy::NodeData::NodeData(uint64_t id, uint8_t type)
 {
-	this->x = initX;
-	this->y = initY;
-	this->type = initType;
-	this->Q = initQ;
+	this->id = id;
+	this->type = type;
 }
