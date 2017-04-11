@@ -70,7 +70,7 @@ namespace karthy
 	
 		//given decision tree, select next action
 		Action* selectAction(DecisionTree& decisionTree);
-		Move convertMoveLogicalToPhysical(Move logicalMove);
+		Move convertToPhysicalMove(Move logicalMove);
 
 	public:
 		//number of move to look forward

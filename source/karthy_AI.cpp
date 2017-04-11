@@ -307,7 +307,7 @@ uint64_t karthy::GomokuAI::locateCurrentStateId(Move& adversaryMove, GomokuBoard
 		for (forward_list<Action*>::iterator it = currentState->edgeList->begin(); it != currentState->edgeList->end(); ++it)
 		{
 			const Move move = Move((*it)->x, (*it)->y);
-			this->myGame->board.setBoxStatus(move, (BoxStatus)this->myPlayer);
+			this->myGame->board.setBoxStatus(move, (BoxStatus)!this->myPlayer);
 
 			bool symetric = isSymmetric(this->myGame->board.boxStatus, gameBoard.boxStatus);
 
@@ -334,6 +334,12 @@ bool karthy::GomokuAI::isSymmetric(Mat boxStatus1, Mat boxStatus2)
 	printBoard(boxStatus2);
 	printBoard(boxStatus1);
 	printf("/////////\n");*/
+
+	if (isEqual(boxStatus2, boxStatus1))
+	{
+		return true;
+	}
+
 	//rotate 90
 	Mat boardRotate = rotateBoard(boxStatus1, 90);
 	if (isEqual(boxStatus2, boardRotate))
@@ -421,6 +427,7 @@ karthy::GomokuAI::Action* karthy::GomokuAI::selectAction(DecisionTree& decisionT
 
 Move karthy::GomokuAI::convertToPhysicalMove(Move logicalMove)
 {
-	Move physicalMove;
+	//just for fun :3
+	Move physicalMove = logicalMove;
 	return physicalMove;
 }
