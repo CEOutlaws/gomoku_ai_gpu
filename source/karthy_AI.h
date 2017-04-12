@@ -35,7 +35,9 @@ namespace karthy
 		DecisionTree decisionTree;
 		uint64_t currentStateId;
 		uint64_t stateCount;
-
+		//parent of current node
+		uint64_t parrentStateId;
+		uint64_t oldAction;
 		//karthy's View of the game
 		GomokuGame* myGame;
 		//karthy's playing role
@@ -69,6 +71,10 @@ namespace karthy
 		Action* selectAction(DecisionTree& decisionTree);
 		Move convertToPhysicalMove(Move logicalMove);
 
+		void displayBoard();
+
+		//update qValue
+		void feedbackQValue(uint8_t trueAction);
 	public:
 		//number of move to look forward
 		uint8_t depth;

@@ -8,12 +8,19 @@ void printBoard(Mat board)
 	{
 		for (int j = 0; j < board.rows; j++)
 		{
-			printf("%d", board.at<uchar>(Point2i(i, j)));
+			printf("%d", board.at<uchar>(Point2i(board.cols-j-1, board.cols-i-1)));
 		}
 		printf("\n");
 	}
 }
-
+void karthy::GomokuAI::displayBoard()
+{
+	printf("logical :\n");
+	printBoard(myGame->board.boxStatus);
+	printf("physical :\n");
+	printBoard(_game->board.boxStatus);
+	printf("\n\n\n\n\n\n\n\n\n\n\n");
+}
 karthy::GomokuAI::GomokuAI(GomokuPVE* pveGame, uint8_t depth)
 {
 	this->myPlayer = Player::NO_PLAYER;
@@ -32,6 +39,8 @@ karthy::GomokuAI::GomokuAI(GomokuPVE* pveGame, uint8_t depth)
 		infoFile >> this->stateCount;
 		infoFile.close();
 	}
+	
+	this->parrentStateId = 0;
 }
 
 karthy::GomokuAI::~GomokuAI(void)
@@ -52,22 +61,35 @@ void karthy::GomokuAI::takeTurn(void)
 	const int thickness = 5;
 	cv::putText(_game->gameFrame, text, textOrg, fontFace, fontScale, { 255, 0, 0 }, thickness, 8);
 	_game->showMap();
-
+	
 	this->currentStateId = this->locateCurrentStateId(this->_game->latestMove, this->_game->board);
+	//cout << "currentStateid" << this->currentStateId << endl;
+	//update parent Id
+	//cout << "currentStateid1 " << this->currentStateId << endl;
+	uint8_t parentStateIdTemp = this->currentStateId;
 
 	this->buildDecisionTree();
-
+	
 	//estimateDecisionTree();
  	Action* selectedAction = selectAction(this->decisionTree);
-	//DecisionNode* selectedNextMove = this->decisionTree.root->childList->front();
+
 	
+
+	//DecisionNode* selectedNextMove = this->decisionTree.root->childList->front();
+	//displayBoard();
 	const Move logicalSelectedMove = Move(selectedAction->x, selectedAction->y);
 	this->currentStateId = selectedAction->otherNode->getId();
 	this->myGame->executeMove(logicalSelectedMove);
 
+	//displayBoard();
 	const Move physicalSelectedMove = convertToPhysicalMove(logicalSelectedMove);
 	cv::putText(_game->gameFrame, text, textOrg, fontFace, fontScale, BACKGROUND_COLOR, thickness, 8);
 	this->_game->executeMove(physicalSelectedMove);
+	
+	//displayBoard();
+	//cout << "currentStateid2 " << this->currentStateId << endl;
+	this->parrentStateId = parentStateIdTemp;
+	
 }
 
 void karthy::GomokuAI::getReady(Player myPlayer)
@@ -381,8 +403,9 @@ uint64_t karthy::GomokuAI::locateCurrentStateId(Move& adversaryMove, GomokuBoard
 	{
 		//build adversary's decistiontree
 		this->buildDecisionTree();
+		
 		State* currentState = this->decisionTree.root;
-
+		
 		for (forward_list<Action*>::iterator it = currentState->edgeList->begin(); it != currentState->edgeList->end(); ++it)
 		{
 			const Move move = Move((*it)->x, (*it)->y);
@@ -401,14 +424,15 @@ uint64_t karthy::GomokuAI::locateCurrentStateId(Move& adversaryMove, GomokuBoard
 			}
 		}
 	}
-
 	return result;
 }
 
 karthy::GomokuAI::Action* karthy::GomokuAI::selectAction(DecisionTree& decisionTree)
 {
 	Action* action = NULL;
-
+	uint64_t trueAction = 0;
+	uint64_t actionCount = 0;
+	//bool fActionCount = false;
 	if (!decisionTree.root->edgeList->empty())
 	{
 		for (forward_list<Action*>::iterator it = decisionTree.root->edgeList->begin(); it != decisionTree.root->edgeList->end(); ++it)
@@ -420,7 +444,9 @@ karthy::GomokuAI::Action* karthy::GomokuAI::selectAction(DecisionTree& decisionT
 			else if ((*it)->qValue > action->qValue)
 			{
 				action = (*it);
+				trueAction = actionCount;
 			}
+			actionCount++;
 		}
 	}
 	else
@@ -428,12 +454,232 @@ karthy::GomokuAI::Action* karthy::GomokuAI::selectAction(DecisionTree& decisionT
 		cout << "No action available" << endl;
 	}
 
+	// Feedback qValue
+	feedbackQValue(trueAction);
+	this->oldAction = trueAction;
 	return action;
 }
 
+int countDiff(const Mat mat1, const Mat mat2) {
+	Mat diff;
+	compare(mat1, mat2, diff, CMP_NE);
+	int nonZero = countNonZero(diff);
+	return nonZero;
+}
+Move findDiffPosition(Mat boxStatus1, Mat BoxStatus2)
+{
+	for (int i = 0; i < boxStatus1.rows; i++)
+	{
+		for (int j = 0; j < boxStatus1.cols; j++)
+		{
+			if (boxStatus1.at<uchar>(Point2i(i, j)) != BoxStatus2.at<uchar>(Point2i(i, j)))
+			{
+				//printf("cc %d - %d cc\n", boxStatus1.cols - i - 1,boxStatus1.cols - j - 1);
+				return Move(i, j);
+			}
+		}
+	}
+	printf("Have a problem findDiffPosition");
+	return Move(0, 0);
+}
 Move karthy::GomokuAI::convertToPhysicalMove(Move logicalMove)
 {
 	//just for fun :3
 	Move physicalMove = logicalMove;
+	//displayBoard();
+	//int numDiff = 0; numDiff = countDiff(_game->board.boxStatus, myGame->board.boxStatus);
+	if (countDiff(_game->board.boxStatus, myGame->board.boxStatus) == 1)
+	{
+		return physicalMove;
+	}
+
+	//rotate 90
+	Mat boardRotate = rotateBoard(myGame->board.boxStatus, 90);
+	if (countDiff(_game->board.boxStatus, boardRotate) == 1)
+	{
+		return findDiffPosition(_game->board.boxStatus, boardRotate);
+	}
+	//boardRotate90.release();
+
+	//rotate 180
+	boardRotate = rotateBoard(myGame->board.boxStatus, 180);
+	if (countDiff(_game->board.boxStatus, boardRotate) == 1)
+	{
+		return findDiffPosition(_game->board.boxStatus, boardRotate);
+	}
+
+	//rotate 270
+	boardRotate = rotateBoard(myGame->board.boxStatus, 270);
+	if (countDiff(_game->board.boxStatus, boardRotate) == 1)
+	{
+		return findDiffPosition(_game->board.boxStatus, boardRotate);
+	}
+
+	Mat boardFlip = myGame->board.boxStatus.clone();
+	//flip(board, board, 2);
+	// 0: lap theo truc dung
+	// 1: theo truc ngang
+	//gpu::flip(boardFlip, myGame->board.boxStatus, 0);
+	flip(myGame->board.boxStatus, boardFlip, 0);
+	/*printf("*******\n");
+	printBoard(boardFlip);
+	printf("*******\n");*/
+	if (countDiff(_game->board.boxStatus, boardFlip) == 1)
+	{
+		return findDiffPosition(_game->board.boxStatus, boardFlip);
+	}
+
+	boardRotate = rotateBoard(boardFlip, 90);
+	if (countDiff(_game->board.boxStatus, boardRotate) == 1)
+	{
+		return findDiffPosition(_game->board.boxStatus, boardRotate);
+	}
+
+	boardRotate = rotateBoard(boardFlip, 180);
+
+	if (countDiff(_game->board.boxStatus, boardRotate) == 1)
+	{
+		return findDiffPosition(_game->board.boxStatus, boardRotate);
+	}
+
+	boardRotate = rotateBoard(boardFlip, 270);
+	if (countDiff(_game->board.boxStatus, boardRotate) == 1)
+	{
+		return findDiffPosition(_game->board.boxStatus, boardRotate);
+	}
+
+	/*printBoard(myGame->board.boxStatus);
+	printBoard(_game->board.boxStatus);
+	printf("////////\n");*/
+	printf("Have problem convertPosition");
 	return physicalMove;
+}
+void edit_file(int line_to_change, int column_to_change, const std::string& change_to)
+{
+	if (std::ifstream in{ "txt_in" })
+		if (std::ofstream out{ "txt_out" })
+		{
+			int line = 1, column = 1;
+			std::string word;
+			char whitespace;
+			while (in >> word && in.get(whitespace))
+			{
+				if (line == line_to_change && column == column_to_change)
+					word = change_to;
+				out << word << whitespace;
+				if (whitespace == '\n') // newline...
+				{
+					++line;
+					column = 1;
+				}
+				else // presumably a tab...
+					++column;
+			}
+		}
+		else
+			std::cerr << "unable to open output file\n";
+	else
+		std::cerr << "unable to open input file\n";
+}
+
+void karthy::GomokuAI::feedbackQValue(uint8_t trueAction)
+{
+	printf("%d - %d asdas\n", this->parrentStateId, this->currentStateId);
+	if (this->currentStateId <= this->parrentStateId )
+		return;
+	string oldnameTemp = KARTHY_MEMORY_PATH + (string)"temp";
+	string newnameTemp = KARTHY_MEMORY_PATH + to_string(this->parrentStateId);
+	char *oldname = (char*)oldnameTemp.c_str();
+	char *newname = (char*)newnameTemp.c_str();
+
+	std::ifstream loadedParent;
+	loadedParent.open(KARTHY_MEMORY_PATH + to_string(this->parrentStateId));
+
+	std::ifstream loadedCurrent;
+	loadedCurrent.open(KARTHY_MEMORY_PATH + to_string(this->currentStateId));
+	// khoi tao ten
+	
+
+	std::ofstream newStateFile;
+	if (!loadedParent.is_open()|| !loadedCurrent.is_open())
+	{
+		printf("co loi ham feedbackQValue/n");
+		return;
+	}
+	
+	std::ifstream loadTemp;
+	loadTemp.open(oldnameTemp);
+	if (loadTemp.is_open())
+	{
+		remove(oldname);
+	}
+	loadTemp.close();
+	ofstream fileout(oldnameTemp); //Temporary file
+
+	double maxQ;
+	double oldQ;
+	int i = 0;
+	while (!loadedCurrent.eof())
+	{
+		loadedCurrent >> maxQ;
+		if (i==trueAction) 
+		{
+			break;
+		}
+	}
+	uint64_t childNode;
+	i = 0;
+	while (loadedParent.good())
+	{
+		loadedParent >> oldQ;
+		loadedParent >> childNode;
+		if (!loadedParent.good()) break;
+
+		if (childNode == 0)
+		{
+			break;
+		}
+		if (i == this->oldAction)
+		{
+			cout << i <<endl;
+			oldQ = oldQ + this->qLearningParameter.anpha * (this->qLearningParameter.grammar * maxQ - oldQ);
+			fileout << oldQ << '\n';
+			fileout << childNode << '\n';
+		}
+		else {
+			cout << i << endl;
+			fileout << oldQ << '\n';
+			fileout << childNode << '\n';
+		}
+		i++;
+	}
+	
+	//currentNode->data->Q = currentNode->data->Q +
+	//	Evalute.anpha *	(reward + Evalute.grammar * maxQ - currentNode->data->Q);
+	//int reward = 0;
+	
+	// close file
+	loadedCurrent.close();
+	loadedParent.close();
+	fileout.close();
+	
+	//rename
+	
+	
+
+	if (remove(newname) != 0)
+		printf("Error deleting file");
+
+	if (rename(oldname, newname))
+		printf("Error renaming file : %s - %s", oldname,newname);
+	/*std::ifstream loadNewId;
+	loadNewId.open(KARTHY_MEMORY_PATH + to_string(this->parrentStateId));
+	int k = 0;
+	while (loadNewId.good())
+	{
+		loadNewId >> k;
+		printf("%d\n", k);
+	}
+	printf("/////////////////////\n");
+	loadNewId.close();*/
 }
