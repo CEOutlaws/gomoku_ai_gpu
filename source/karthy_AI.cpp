@@ -591,7 +591,7 @@ void karthy::GomokuAI::feedbackQValue(uint8_t trueAction)
 	string newnameTemp = KARTHY_MEMORY_PATH + to_string(this->parrentStateId);
 	char *oldname = (char*)oldnameTemp.c_str();
 	char *newname = (char*)newnameTemp.c_str();
-
+	
 	std::ifstream loadedParent;
 	loadedParent.open(KARTHY_MEMORY_PATH + to_string(this->parrentStateId));
 
