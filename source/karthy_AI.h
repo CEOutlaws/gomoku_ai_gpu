@@ -71,6 +71,7 @@ namespace karthy
 		Action* selectAction(DecisionTree& decisionTree);
 		Move convertToPhysicalMove(Move logicalMove);
 
+		//debug function
 		void displayBoard();
 
 		//update qValue

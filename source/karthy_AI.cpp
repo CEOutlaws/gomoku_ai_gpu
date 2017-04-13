@@ -76,17 +76,14 @@ void karthy::GomokuAI::takeTurn(void)
 	
 
 	//DecisionNode* selectedNextMove = this->decisionTree.root->childList->front();
-	//displayBoard();
 	const Move logicalSelectedMove = Move(selectedAction->x, selectedAction->y);
 	this->currentStateId = selectedAction->otherNode->getId();
 	this->myGame->executeMove(logicalSelectedMove);
 
-	//displayBoard();
 	const Move physicalSelectedMove = convertToPhysicalMove(logicalSelectedMove);
 	cv::putText(_game->gameFrame, text, textOrg, fontFace, fontScale, BACKGROUND_COLOR, thickness, 8);
 	this->_game->executeMove(physicalSelectedMove);
 	
-	//displayBoard();
 	//cout << "currentStateid2 " << this->currentStateId << endl;
 	this->parrentStateId = parentStateIdTemp;
 	
@@ -554,33 +551,7 @@ Move karthy::GomokuAI::convertToPhysicalMove(Move logicalMove)
 	printf("Have problem convertPosition");
 	return physicalMove;
 }
-void edit_file(int line_to_change, int column_to_change, const std::string& change_to)
-{
-	if (std::ifstream in{ "txt_in" })
-		if (std::ofstream out{ "txt_out" })
-		{
-			int line = 1, column = 1;
-			std::string word;
-			char whitespace;
-			while (in >> word && in.get(whitespace))
-			{
-				if (line == line_to_change && column == column_to_change)
-					word = change_to;
-				out << word << whitespace;
-				if (whitespace == '\n') // newline...
-				{
-					++line;
-					column = 1;
-				}
-				else // presumably a tab...
-					++column;
-			}
-		}
-		else
-			std::cerr << "unable to open output file\n";
-	else
-		std::cerr << "unable to open input file\n";
-}
+
 
 void karthy::GomokuAI::feedbackQValue(uint8_t trueAction)
 {
