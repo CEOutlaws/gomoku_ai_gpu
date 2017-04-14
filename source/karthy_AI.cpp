@@ -71,8 +71,10 @@ void karthy::GomokuAI::takeTurn(void)
 	this->buildDecisionTree();
 	
 	//estimateDecisionTree();
- 	Action* selectedAction = selectAction(this->decisionTree);
-
+	uint64_t updateOldAction;
+ 	Action* selectedAction = selectAction(this->decisionTree, updateOldAction);
+	feedbackQValue(selectedAction);
+	this->oldAction = updateOldAction;
 	
 
 	//DecisionNode* selectedNextMove = this->decisionTree.root->childList->front();
@@ -244,7 +246,7 @@ bool karthy::GomokuAI::isSymmetric(forward_list<Edge*>* currentNextNodeList, Mov
 		Mat boardFutureMove = this->myGame->board.boxStatus.clone();
 		boardFutureMove.at<uchar>(Point2i(nextMoveToCheck)) = (uchar)newBoxStatus;
 
-		if (isSymmetric(boardExistMove, boardFutureMove))
+		if (isSymmetric(boardExistMove, boardFutureMove, false))
 		{
 			return true;
 		}
@@ -255,11 +257,11 @@ bool karthy::GomokuAI::isSymmetric(forward_list<Edge*>* currentNextNodeList, Mov
 
 bool karthy::GomokuAI::isSymmetric(GomokuBoard& board1, GomokuBoard& board2)
 {
-	return isSymmetric(board1.boxStatus, board2.boxStatus);
+	return isSymmetric(board1.boxStatus, board2.boxStatus, true);
 }
 
 
-bool karthy::GomokuAI::isSymmetric(Mat& boxStatus1, Mat& boxStatus2)
+bool karthy::GomokuAI::isSymmetric(Mat& boxStatus1, Mat& boxStatus2,bool flagUpdate)
 {
 	/*
 	debug
@@ -270,6 +272,7 @@ bool karthy::GomokuAI::isSymmetric(Mat& boxStatus1, Mat& boxStatus2)
 
 	if (isEqual(boxStatus2, boxStatus1))
 	{
+		if (flagUpdate == true) this->way = controlSymmetric::Rot0Flip0;
 		return true;
 	}
 
@@ -277,6 +280,7 @@ bool karthy::GomokuAI::isSymmetric(Mat& boxStatus1, Mat& boxStatus2)
 	Mat boardRotate = rotateBoard(boxStatus1, 90);
 	if (isEqual(boxStatus2, boardRotate))
 	{
+		if (flagUpdate == true) this->way = controlSymmetric::Rot90Flip0;
 		return true;
 	}
 	//boardRotate90.release();
@@ -285,6 +289,7 @@ bool karthy::GomokuAI::isSymmetric(Mat& boxStatus1, Mat& boxStatus2)
 	boardRotate = rotateBoard(boxStatus1, 180);
 	if (isEqual(boxStatus2, boardRotate))
 	{
+		if (flagUpdate == true) this->way = controlSymmetric::Rot180Flip0;
 		return true;
 	}
 
@@ -292,6 +297,7 @@ bool karthy::GomokuAI::isSymmetric(Mat& boxStatus1, Mat& boxStatus2)
 	boardRotate = rotateBoard(boxStatus1, 270);
 	if (isEqual(boxStatus2, boardRotate))
 	{
+		if (flagUpdate == true) this->way = controlSymmetric::Rot270Flip0;
 		return true;
 	}
 
@@ -306,12 +312,14 @@ bool karthy::GomokuAI::isSymmetric(Mat& boxStatus1, Mat& boxStatus2)
 	printf("*******\n");*/
 	if (isEqual(boxStatus2, boardFlip))
 	{
+		if (flagUpdate == true) this->way = controlSymmetric::Rot0Flip1;
 		return true;
 	}
 
 	boardRotate = rotateBoard(boardFlip, 90);
 	if (isEqual(boxStatus2, boardRotate))
 	{
+		if (flagUpdate == true) this->way = controlSymmetric::Rot90Flip1;
 		return true;
 	}
 
@@ -319,16 +327,19 @@ bool karthy::GomokuAI::isSymmetric(Mat& boxStatus1, Mat& boxStatus2)
 
 	if (isEqual(boxStatus2, boardRotate))
 	{
+		if (flagUpdate == true) this->way = controlSymmetric::Rot180Flip1;
 		return true;
 	}
 
 	boardRotate = rotateBoard(boardFlip, 270);
 	if (isEqual(boxStatus2, boardRotate))
 	{
+		if (flagUpdate == true) this->way = controlSymmetric::Rot270Flip1;
 		return true;
 	}
 
 	boardRotate.release();
+	//this->way = controlSymmetric::NoRotFlip;
 	return false;
 }
 
@@ -389,6 +400,7 @@ void karthy::GomokuAI::estimateDecisionTree()
 uint64_t karthy::GomokuAI::locateCurrentStateId(Move& adversaryMove, GomokuBoard& gameBoard)
 {
 	uint64_t result;
+	//uint64_t result = 1000;
 
 	//karthy's adversary hasn't moved because karthy go first
 	if (adversaryMove == NULL_MOVE)
@@ -421,13 +433,14 @@ uint64_t karthy::GomokuAI::locateCurrentStateId(Move& adversaryMove, GomokuBoard
 			}
 		}
 	}
+	
 	return result;
 }
 
-karthy::GomokuAI::Action* karthy::GomokuAI::selectAction(DecisionTree& decisionTree)
+karthy::GomokuAI::Action* karthy::GomokuAI::selectAction(DecisionTree& decisionTree,uint64_t &updateOldAction)
 {
 	Action* action = NULL;
-	uint64_t trueAction = 0;
+	uint64_t selectedAction = 0;
 	uint64_t actionCount = 0;
 	//bool fActionCount = false;
 	if (!decisionTree.root->edgeList->empty())
@@ -441,7 +454,7 @@ karthy::GomokuAI::Action* karthy::GomokuAI::selectAction(DecisionTree& decisionT
 			else if ((*it)->qValue > action->qValue)
 			{
 				action = (*it);
-				trueAction = actionCount;
+				selectedAction = actionCount;
 			}
 			actionCount++;
 		}
@@ -451,9 +464,7 @@ karthy::GomokuAI::Action* karthy::GomokuAI::selectAction(DecisionTree& decisionT
 		cout << "No action available" << endl;
 	}
 
-	// Feedback qValue
-	feedbackQValue(trueAction);
-	this->oldAction = trueAction;
+	updateOldAction = selectedAction;
 	return action;
 }
 
@@ -479,7 +490,7 @@ Move findDiffPosition(Mat boxStatus1, Mat BoxStatus2)
 	printf("Have a problem findDiffPosition");
 	return Move(0, 0);
 }
-Move karthy::GomokuAI::convertToPhysicalMove(Move logicalMove)
+/*Move karthy::GomokuAI::convertToPhysicalMove(Move logicalMove)
 {
 	//just for fun :3
 	Move physicalMove = logicalMove;
@@ -518,9 +529,9 @@ Move karthy::GomokuAI::convertToPhysicalMove(Move logicalMove)
 	// 1: theo truc ngang
 	//gpu::flip(boardFlip, myGame->board.boxStatus, 0);
 	flip(myGame->board.boxStatus, boardFlip, 0);
-	/*printf("*******\n");
-	printBoard(boardFlip);
-	printf("*******\n");*/
+	//printf("*******\n");
+	//printBoard(boardFlip);
+	//printf("*******\n");
 	if (countDiff(_game->board.boxStatus, boardFlip) == 1)
 	{
 		return findDiffPosition(_game->board.boxStatus, boardFlip);
@@ -545,15 +556,72 @@ Move karthy::GomokuAI::convertToPhysicalMove(Move logicalMove)
 		return findDiffPosition(_game->board.boxStatus, boardRotate);
 	}
 
-	/*printBoard(myGame->board.boxStatus);
-	printBoard(_game->board.boxStatus);
-	printf("////////\n");*/
+	//printBoard(myGame->board.boxStatus);
+	//printBoard(_game->board.boxStatus);
+	//printf("////////\n");
 	printf("Have problem convertPosition");
 	return physicalMove;
+}*/
+Move karthy::GomokuAI::convertToPhysicalMove(Move logicalMove)
+{
+	if (this->way == controlSymmetric::Rot0Flip0)
+	{
+		return logicalMove;
+	}
+
+	
+	if (this->way == controlSymmetric::Rot90Flip0)
+	{
+		Mat boardRotate = rotateBoard(myGame->board.boxStatus, 90);
+		return findDiffPosition(_game->board.boxStatus, boardRotate);
+	}
+
+	if (this->way == controlSymmetric::Rot180Flip0)
+	{
+		Mat boardRotate = rotateBoard(myGame->board.boxStatus, 180);
+		return findDiffPosition(_game->board.boxStatus, boardRotate);
+	}
+
+	if (this->way == controlSymmetric::Rot270Flip0)
+	{
+		Mat boardRotate = rotateBoard(myGame->board.boxStatus, 270);
+		return findDiffPosition(_game->board.boxStatus, boardRotate);
+	}
+
+	if (this->way == controlSymmetric::Rot0Flip1)
+	{
+		Mat boardFlip = myGame->board.boxStatus.clone();
+		flip(myGame->board.boxStatus, boardFlip, 0);
+		//Mat boardRotate = rotateBoard(boardFlip, 0);
+		return findDiffPosition(_game->board.boxStatus, boardFlip);
+	}
+
+	if (this->way == controlSymmetric::Rot90Flip1)
+	{
+		Mat boardFlip = myGame->board.boxStatus.clone();
+		flip(myGame->board.boxStatus, boardFlip, 0);
+		Mat boardRotate = rotateBoard(boardFlip, 90);
+		return findDiffPosition(_game->board.boxStatus, boardRotate);
+	}
+
+	if (this->way == controlSymmetric::Rot180Flip1)
+	{
+		Mat boardFlip = myGame->board.boxStatus.clone();
+		flip(myGame->board.boxStatus, boardFlip, 0);
+		Mat boardRotate = rotateBoard(boardFlip, 180);
+		return findDiffPosition(_game->board.boxStatus, boardRotate);
+	}
+
+	if (this->way == controlSymmetric::Rot270Flip1)
+	{
+		Mat boardFlip = myGame->board.boxStatus.clone();
+		flip(myGame->board.boxStatus, boardFlip, 0);
+		Mat boardRotate = rotateBoard(boardFlip, 270);
+		return findDiffPosition(_game->board.boxStatus, boardRotate);
+	}
 }
 
-
-void karthy::GomokuAI::feedbackQValue(uint8_t trueAction)
+void karthy::GomokuAI::feedbackQValue(Action *selectedAction)
 {
 	printf("%d - %d asdas\n", this->parrentStateId, this->currentStateId);
 	if (this->currentStateId <= this->parrentStateId )
@@ -566,13 +634,11 @@ void karthy::GomokuAI::feedbackQValue(uint8_t trueAction)
 	std::ifstream loadedParent;
 	loadedParent.open(KARTHY_MEMORY_PATH + to_string(this->parrentStateId));
 
-	std::ifstream loadedCurrent;
-	loadedCurrent.open(KARTHY_MEMORY_PATH + to_string(this->currentStateId));
 	// khoi tao ten
 	
 
 	std::ofstream newStateFile;
-	if (!loadedParent.is_open()|| !loadedCurrent.is_open())
+	if (!loadedParent.is_open())
 	{
 		printf("co loi ham feedbackQValue/n");
 		return;
@@ -587,19 +653,10 @@ void karthy::GomokuAI::feedbackQValue(uint8_t trueAction)
 	loadTemp.close();
 	ofstream fileout(oldnameTemp); //Temporary file
 
-	double maxQ;
 	double oldQ;
 	int i = 0;
-	while (!loadedCurrent.eof())
-	{
-		loadedCurrent >> maxQ;
-		if (i==trueAction) 
-		{
-			break;
-		}
-	}
 	uint64_t childNode;
-	i = 0;
+
 	while (loadedParent.good())
 	{
 		loadedParent >> oldQ;
@@ -612,13 +669,13 @@ void karthy::GomokuAI::feedbackQValue(uint8_t trueAction)
 		}
 		if (i == this->oldAction)
 		{
-			cout << i <<endl;
-			oldQ = oldQ + this->qLearningParameter.anpha * (this->qLearningParameter.grammar * maxQ - oldQ);
+			//cout << i <<endl;
+			oldQ = oldQ + this->qLearningParameter.anpha * (this->qLearningParameter.grammar * selectedAction->qValue - oldQ);
 			fileout << oldQ << '\n';
 			fileout << childNode << '\n';
 		}
 		else {
-			cout << i << endl;
+			//cout << i << endl;
 			fileout << oldQ << '\n';
 			fileout << childNode << '\n';
 		}
@@ -630,7 +687,6 @@ void karthy::GomokuAI::feedbackQValue(uint8_t trueAction)
 	//int reward = 0;
 	
 	// close file
-	loadedCurrent.close();
 	loadedParent.close();
 	fileout.close();
 	

@@ -31,6 +31,18 @@ namespace karthy
 			double anpha = 0.9;
 		}qLearningParameter;
 
+		enum class controlSymmetric : uint8_t
+		{
+			Rot0Flip0 ,
+			Rot90Flip0 ,
+			Rot180Flip0 ,
+			Rot270Flip0 ,
+			Rot0Flip1,
+			Rot90Flip1,
+			Rot180Flip1,
+			Rot270Flip1
+		};
+
 		GomokuPVE* _game;
 		DecisionTree decisionTree;
 		uint64_t currentStateId;
@@ -43,6 +55,8 @@ namespace karthy
 		//karthy's playing role
 		Player myPlayer;
 
+		//the way symmetric
+		controlSymmetric way;
 		//build DecisionTree from root (the current game board state)
 		void buildDecisionTree(void);
 
@@ -55,7 +69,7 @@ namespace karthy
 		//check symmetric for reduction/mapping
 		bool isSymmetric(forward_list<Edge*>* currentNextNodeList, Move nextMoveToCheck, BoxStatus newBoxStatus);
 		bool isSymmetric(GomokuBoard& board1, GomokuBoard& board2);
-		bool isSymmetric(Mat& boxStatus1, Mat& boxStatus2);
+		bool isSymmetric(Mat& boxStatus1, Mat& boxStatus2, bool flagUpdate);
 
 		//calculate Q match
 		void estimateNode(Node* currentNode, double reward);
@@ -68,14 +82,14 @@ namespace karthy
 		uint64_t locateCurrentStateId(Move& adversaryMove, GomokuBoard& gameBoard);
 	
 		//given decision tree, select next action
-		Action* selectAction(DecisionTree& decisionTree);
+		Action* selectAction(DecisionTree& decisionTree, uint64_t &updateOlaAction);
 		Move convertToPhysicalMove(Move logicalMove);
 
 		//debug function
 		void displayBoard();
 
 		//update qValue
-		void feedbackQValue(uint8_t trueAction);
+		void feedbackQValue(Action* selectedAction);
 	public:
 		//number of move to look forward
 		uint8_t depth;
