@@ -1,8 +1,8 @@
 #pragma once
 #include <forward_list> 
-#include "karthy_nodedata.h"
-#include "karthy_common.h"
-#include "karthy_edge.h"
+#include "karthy_NodeData.h"
+#include "karthy_Common.h"
+#include "karthy_Edge.h"
 
 using namespace std;
 

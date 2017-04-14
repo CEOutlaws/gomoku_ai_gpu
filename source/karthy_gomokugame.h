@@ -1,6 +1,6 @@
 #pragma once
-#include "karthy_common.h"
-#include "karthy_gomokuboard.h"
+#include "karthy_Common.h"
+#include "karthy_GomokuBoard.h"
 
 namespace karthy
 {
@@ -29,6 +29,7 @@ namespace karthy
 
 		virtual void newGame(void);
 		virtual void executeMove(Move move);
+
 		Player getWinner(void); //WHITE/BLACK/NO ONE WIN
 		void switchPlayer(void);
 		uint8_t getStoneToWin(void);

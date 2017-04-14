@@ -1,4 +1,4 @@
-#include "karthy_gomokugame.h"
+#include "karthy_GomokuGame.h"
 
 using namespace karthy;
 

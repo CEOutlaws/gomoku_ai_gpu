@@ -1,24 +1,24 @@
 #pragma once
-#include "karthy_gomokuPVP.h"
-#include "karthy_tree.h"
-#include "karthy_node.h"
-#include "karthy_common.h"
-#include "karthy_AI.h"
+#include "karthy_GomokuPVP.h"
+#include "karthy_Tree.h"
+#include "karthy_Node.h"
+#include "karthy_Common.h"
+#include "karthy_GomokuAIAgent.h"
 
 using namespace std;
 
 namespace karthy
 {	
-	class GomokuAI;
+	class GomokuAIAgent;
 	class GomokuPVE : public GomokuPVP
 	{
 	public:
-
+		GomokuPVE(void);
 		GomokuPVE(uint8_t initBoardCols, uint8_t initStonesToWin);
 		GomokuPVE(uint8_t initBoardCols, uint8_t initStonesToWin, uint8_t aiDepth);
 		~GomokuPVE(void);
 
-		GomokuAI* karthyCEO;
+		GomokuAIAgent* karthyCEO;
 		
 		void newGame(void);
 		void replay(void);

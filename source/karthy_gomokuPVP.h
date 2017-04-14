@@ -1,7 +1,7 @@
 #pragma once
 
-#include "karthy_common.h"
-#include "karthy_gomokugame.h"
+#include "karthy_Common.h"
+#include "karthy_Gomokugame.h"
 
 using namespace cv;
 
@@ -36,6 +36,9 @@ namespace karthy
 
 		void executeMove(Move move);
 		void handleMoveConsequence(void);
+
+		void writeText(Text text);
+		void eraseText(Text text);
 	};
 }
 

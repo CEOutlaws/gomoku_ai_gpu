@@ -1,13 +1,17 @@
-#include "karthy_gomokuPVE.h"
+#include "karthy_GomokuPVE.h"
+
+karthy::GomokuPVE::GomokuPVE(void)
+{
+}
 
 karthy::GomokuPVE::GomokuPVE(uint8_t initBoardCols, uint8_t initStonesToWin) :GomokuPVP::GomokuPVP(initBoardCols, initStonesToWin)
 {
-	this->karthyCEO = new GomokuAI(this, 10);
+	this->karthyCEO = new GomokuAIAgent(this, 10);
 }
 
 karthy::GomokuPVE::GomokuPVE(uint8_t initBoardCols, uint8_t initStonesToWin, uint8_t aiDepth) : GomokuPVP::GomokuPVP(initBoardCols, initStonesToWin)
 {
-	this->karthyCEO = new GomokuAI(this, aiDepth);
+	this->karthyCEO = new GomokuAIAgent(this, aiDepth);
 }
 
 karthy::GomokuPVE::~GomokuPVE(void)
@@ -19,7 +23,7 @@ void karthy::GomokuPVE::newGame(void)
 {
 	GomokuPVP::newGame();
 	karthyCEO->getReady(Player::BLACK_PLAYER);
-	this->karthyCEO->takeTurn();
+	this->executeMove(this->karthyCEO->takeTurn());
 }
 
 void karthy::GomokuPVE::replay(void)
@@ -31,7 +35,7 @@ void karthy::GomokuPVE::replay(void)
 
 	if (karthyCEO->getPlayer() == Player::BLACK_PLAYER)
 	{
-		karthyCEO->takeTurn();
+		this->executeMove(this->karthyCEO->takeTurn());
 	}
 }
 
@@ -54,11 +58,11 @@ void karthy::GomokuPVE::MouseHandler(int event, int x, int y)
 			if (board.getBoxStatus(pointedBoxIndex) == BoxStatus::HAVE_NO_STONE)
 			{	
 				//Human move
-				executeMove(pointedBoxIndex);
+				this->executeMove(pointedBoxIndex);
 				if (gameStatus == GameStatus::ENDED) return;
 
 				//Karthy take her turn
-				karthyCEO->takeTurn();
+				this->executeMove(karthyCEO->takeTurn());
 				//Human take their turn
 			}
 		}

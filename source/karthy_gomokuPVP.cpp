@@ -1,4 +1,4 @@
-#include "karthy_gomokuPVP.h"
+#include "karthy_GomokuPVP.h"
 
 using namespace karthy;
 
@@ -44,7 +44,7 @@ void karthy::GomokuPVP::MouseHandler(int event, int x, int y, int flags, void* u
 
 void karthy::GomokuPVP::loadMap()
 {
-	gameFrame = imread("caro_background.jpg", 1);
+	gameFrame = imread(BACK_GROUND_PATH, 1);
 	for (int pixelX = board.sideLength; pixelX < board.maxSideLength; pixelX++)
 	{
 		for (int pixelY = 0; pixelY < board.maxSideLength + board.boxParam.marginThickness; pixelY++)
@@ -110,14 +110,7 @@ void karthy::GomokuPVP::handleMoveConsequence(void)
 		else
 		{
 			gameStatus = GameStatus::ENDED;
-
-			String text = "DRAW";
-			Point textOrg = Point2i(880, 130);
-			Scalar textColor = GRAY_COLOR;
-			int fontFace = FONT_HERSHEY_PLAIN;
-			double fontScale = 6;
-			int thickness = 5;
-			cv::putText(gameFrame, text, textOrg, fontFace, fontScale, textColor, thickness, 8);
+			this->writeText(Text::DRAW);
 		}
 	}
 	else
@@ -130,23 +123,89 @@ void karthy::GomokuPVP::handleMoveConsequence(void)
 
 		if (theWinner == Player::WHITE_PLAYER)
 		{
-			text = "WHITE WIN";
-			textOrg = Point2i(750, 130);
-			textColor = WHITE_COLOR;
+			this->writeText(Text::WHITE_WIN);
 		}
 		else
 		{
-			text = "BLACK WIN";
-			textOrg = Point2i(740, 130);
-			textColor = BLACK_COLOR;
+			this->writeText(Text::BLACK_WIN);
 		}
-
-		int fontFace = FONT_HERSHEY_PLAIN;
-		double fontScale = 6;
-		int thickness = 5;
-
-		cv::putText(gameFrame, text, textOrg, fontFace, fontScale, textColor, thickness, 8);
 	}
+}
+
+void karthy::GomokuPVP::writeText(Text text)
+{
+	const int fontFace = FONT_HERSHEY_PLAIN;
+	const double fontScale = 6;
+	const int thickness = 5;
+
+	String textString;
+	Point textOrg;
+	Scalar textColor;
+
+	switch (text)
+	{
+	case karthy::Text::THINKING:
+		textString = "THINKING";
+		textOrg = Point2i(790, 130);	
+		textColor = BLUE_COLOR;
+		break;
+	case karthy::Text::DRAW:
+		textString = "DRAW";
+		textOrg = Point2i(880, 130);
+		textColor = GRAY_COLOR;
+		break;
+	case karthy::Text::BLACK_WIN:
+		textString = "BLACK WIN";
+		textOrg = Point2i(740, 130);
+		textColor = BLACK_COLOR;
+		break;
+	case karthy::Text::WHITE_WIN:
+		textString = "WHITE WIN";
+		textOrg = Point2i(740, 130);
+		textColor = WHITE_COLOR;
+		break;
+	default:
+		break;
+	}
+
+	cv::putText(this->gameFrame, textString, textOrg, fontFace, fontScale, textColor, thickness, 8);
+	showMap();
+}
+
+void karthy::GomokuPVP::eraseText(Text text)
+{
+	const int fontFace = FONT_HERSHEY_PLAIN;
+	const double fontScale = 6;
+	const int thickness = 5;
+	const Scalar textColor = BACKGROUND_COLOR;
+
+	String textString;
+	Point textOrg;
+
+	switch (text)
+	{
+	case karthy::Text::THINKING:
+		textString = "THINKING";
+		textOrg = Point2i(790, 130);
+		break;
+	case karthy::Text::DRAW:
+		textString = "DRAW";
+		textOrg = Point2i(880, 130); 
+		break;
+	case karthy::Text::BLACK_WIN:
+		textString = "BLACK WIN";
+		textOrg = Point2i(740, 130);
+		break;
+	case karthy::Text::WHITE_WIN:
+		textString = "WHITE WIN";
+		textOrg = Point2i(740, 130);
+		break;
+	default:
+		break;
+	}
+
+	cv::putText(this->gameFrame, textString, textOrg, fontFace, fontScale, textColor, thickness, 8);
+	showMap();
 }
 
 void karthy::GomokuPVP::executeMove(Move move)
@@ -172,4 +231,5 @@ void karthy::GomokuPVP::run(void)
 {
 	initGUI();
 	newGame();
+	while (waitKey(0) != 27);
 }

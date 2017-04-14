@@ -1,4 +1,4 @@
-#include "karthy_tree.h"
+#include "karthy_Tree.h"
 
 using namespace karthy;
 
@@ -19,6 +19,7 @@ void karthy::Tree::clear(void)
 	{
 		return;
 	}
+
 	delete root;
 	root = NULL;
 }
