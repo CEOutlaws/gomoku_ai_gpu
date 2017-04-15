@@ -134,6 +134,8 @@ void karthy::GomokuPVP::handleMoveConsequence(void)
 
 void karthy::GomokuPVP::writeText(Text text)
 {
+	if (this->gameFrame.empty()) { return; }
+
 	const int fontFace = FONT_HERSHEY_PLAIN;
 	const double fontScale = 6;
 	const int thickness = 5;
@@ -174,6 +176,8 @@ void karthy::GomokuPVP::writeText(Text text)
 
 void karthy::GomokuPVP::eraseText(Text text)
 {
+	if (this->gameFrame.empty()) { return; }
+
 	const int fontFace = FONT_HERSHEY_PLAIN;
 	const double fontScale = 6;
 	const int thickness = 5;

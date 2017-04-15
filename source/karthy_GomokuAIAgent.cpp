@@ -11,7 +11,7 @@ karthy::GomokuAIAgent::GomokuAIAgent(GomokuPVE* pveGame, uint8_t depth)
 	this->myLogicalGame = new GomokuGame(myPhysicalGame->board.colCount, myPhysicalGame->getStoneToWin());
 	this->parrentStateId = UINT64_MAX;	//null value
 	this->currentStateId = UINT64_MAX;
-	this->way = ControlSymmetric::Rotate0Flip0;
+	this->logicalVsPhysicalBoardSymmetricType = SymmetricType::ROTATE_000_FLIP_0;
 
 	this->info.load();
 }
@@ -121,7 +121,7 @@ void karthy::GomokuAIAgent::addAvailableAction(State* toState, uint8_t depth)
 
 				Move& nextMove = boxIndex;
 
-				if (isSymmetric(toState->edgeList, nextMove, (BoxStatus)(toState->data->type))) { continue; }
+				if (getSymmetricType(toState->edgeList, nextMove, (BoxStatus)(toState->data->type)) != SymmetricType::NO_SYMETRIC) { continue; }
 
 				Move previousLatestMove = this->myLogicalGame->latestMove;
 				this->myLogicalGame->latestMove = nextMove;
@@ -244,9 +244,9 @@ Mat rotateBoard(Mat board, double angle) {
 	return dst;
 }
 
-bool karthy::GomokuAIAgent::isSymmetric(forward_list<Edge*>* currentNextNodeList, Move nextMoveToCheck, BoxStatus newBoxStatus, bool flagUpdate)
+GomokuAIAgent::SymmetricType karthy::GomokuAIAgent::getSymmetricType(forward_list<Edge*>* currentNextNodeList, Move nextMoveToCheck, BoxStatus newBoxStatus)
 {
-	if (currentNextNodeList->empty() == true) return false;
+	if (currentNextNodeList->empty() == true) { return SymmetricType::NO_SYMETRIC; }
 	for (forward_list<Edge*>::iterator it = currentNextNodeList->begin(); it != currentNextNodeList->end(); ++it)
 	{
 		Mat existMoveBoard = this->myLogicalGame->board.boxStatus.clone();
@@ -256,51 +256,47 @@ bool karthy::GomokuAIAgent::isSymmetric(forward_list<Edge*>* currentNextNodeList
 		Mat futureMoveBoard = this->myLogicalGame->board.boxStatus.clone();
 		futureMoveBoard.at<uchar>(Point2i(nextMoveToCheck)) = (uchar)newBoxStatus;
 
-		if (isSymmetric(existMoveBoard, futureMoveBoard))
+		SymmetricType symmetricType = getSymmetricType(existMoveBoard, futureMoveBoard);
+		if (symmetricType != SymmetricType::NO_SYMETRIC)
 		{
-			return true;
+			return symmetricType;
 		}
 	}
 
-	return false;
+	return SymmetricType::NO_SYMETRIC;
 }
 
-bool karthy::GomokuAIAgent::isSymmetric(GomokuBoard& board1, GomokuBoard& board2, bool flagUpdate)
+GomokuAIAgent::SymmetricType karthy::GomokuAIAgent::getSymmetricType(GomokuBoard& board1, GomokuBoard& board2)
 {
-	return isSymmetric(board1.boxStatus, board2.boxStatus, flagUpdate);
+	return getSymmetricType(board1.boxStatus, board2.boxStatus);
 }
 
-
-bool karthy::GomokuAIAgent::isSymmetric(Mat& boxStatus1, Mat& boxStatus2, bool flagUpdate)
+GomokuAIAgent::SymmetricType karthy::GomokuAIAgent::getSymmetricType(Mat& boxStatus1, Mat& boxStatus2)
 {
 	if (isEqual(boxStatus2, boxStatus1))
 	{
-		if (flagUpdate == true) { this->way = ControlSymmetric::Rotate0Flip0; }
-		return true;
+		return SymmetricType::ROTATE_000_FLIP_0;
 	}
 
 	//rotate 90
 	Mat boardRotate = rotateBoard(boxStatus1, 90);
 	if (isEqual(boxStatus2, boardRotate))
 	{
-		if (flagUpdate == true) { this->way = ControlSymmetric::Rotate90Flip0; }
-		return true;
+		return SymmetricType::ROTATE_090_FLIP_0;
 	}
 
 	//rotate 180
 	boardRotate = rotateBoard(boxStatus1, 180);
 	if (isEqual(boxStatus2, boardRotate))
 	{
-		if (flagUpdate == true) { this->way = ControlSymmetric::Rotate180Flip0; }
-		return true;
+		return SymmetricType::ROTATE_180_FLIP_0;
 	}
 
 	//rotate 270
 	boardRotate = rotateBoard(boxStatus1, 270);
 	if (isEqual(boxStatus2, boardRotate))
 	{
-		if (flagUpdate == true) { this->way = ControlSymmetric::Rotate270Flip0; }
-		return true;
+		return SymmetricType::ROTATE_270_FLIP_0;
 	}
 
 	Mat boardFlip = boxStatus1.clone();
@@ -312,33 +308,29 @@ bool karthy::GomokuAIAgent::isSymmetric(Mat& boxStatus1, Mat& boxStatus2, bool f
 
 	if (isEqual(boxStatus2, boardFlip))
 	{
-		if (flagUpdate == true) { this->way = ControlSymmetric::Rotate0Flip1; }
-		return true;
+		return SymmetricType::ROTATE_000_FLIP_1;
 	}
 
 	boardRotate = rotateBoard(boardFlip, 90);
 	if (isEqual(boxStatus2, boardRotate))
 	{
-		if (flagUpdate == true) { this->way = ControlSymmetric::Rotate90Flip1; }
-		return true;
+		return SymmetricType::ROTATE_090_FLIP_1;
 	}
 
 	boardRotate = rotateBoard(boardFlip, 180);
 	if (isEqual(boxStatus2, boardRotate))
 	{
-		if (flagUpdate == true) { this->way = ControlSymmetric::Rotate180Flip1; }
-		return true;
+		return SymmetricType::ROTATE_180_FLIP_1;
 	}
 
 	boardRotate = rotateBoard(boardFlip, 270);
 	if (isEqual(boxStatus2, boardRotate))
 	{
-		if (flagUpdate == true) { this->way = ControlSymmetric::Rotate270Flip1; }
-		return true;
+		return SymmetricType::ROTATE_270_FLIP_1;
 	}
 
 	boardRotate.release();
-	return false;
+	return SymmetricType::NO_SYMETRIC;
 }
 
 void karthy::GomokuAIAgent::estimateNode(Node* currentNode, double reward)
@@ -446,13 +438,12 @@ uint64_t karthy::GomokuAIAgent::locateCurrentStateId(Move& adversaryMove, Gomoku
 		{
 			const Move logicalMove = Move((*it)->x, (*it)->y);
 			this->myLogicalGame->board.setBoxStatus(logicalMove, (BoxStatus)!this->myPlayer);
-
-			bool symetric = isSymmetric(this->myLogicalGame->board, physicalGameBoard, true);
-
+			//
+			this->logicalVsPhysicalBoardSymmetricType = getSymmetricType(this->myLogicalGame->board, physicalGameBoard);
 			this->myLogicalGame->board.setBoxStatus(logicalMove, BoxStatus::HAVE_NO_STONE);
 
 			//check if got adversary's move
-			if (symetric)
+			if (this->logicalVsPhysicalBoardSymmetricType != SymmetricType::NO_SYMETRIC)
 			{
 				result = (*it)->otherNode->getId();
 				this->myLogicalGame->executeMove(logicalMove);
@@ -489,50 +480,50 @@ Point2i flipPointVertically(Point2i point, uint8_t boardWidth)
 Move karthy::GomokuAIAgent::convertToPhysicalMove(Move logicalMove)
 {
 	Move resultMove = logicalMove;
-	if (this->way == ControlSymmetric::Rotate0Flip0)
+	if (this->logicalVsPhysicalBoardSymmetricType == SymmetricType::ROTATE_000_FLIP_0)
 	{
 		return resultMove;
 	}
 
 	const uint8_t boardWidth = this->myPhysicalGame->board.colCount;
 	resultMove = rotatePoint90Degree(resultMove, boardWidth);
-	if (this->way == ControlSymmetric::Rotate90Flip0)
+	if (this->logicalVsPhysicalBoardSymmetricType == SymmetricType::ROTATE_090_FLIP_0)
 	{
 		return resultMove;
 	}
 
 	resultMove = rotatePoint90Degree(resultMove, boardWidth);
-	if (this->way == ControlSymmetric::Rotate180Flip0)
+	if (this->logicalVsPhysicalBoardSymmetricType == SymmetricType::ROTATE_180_FLIP_0)
 	{
 		return resultMove;
 	}	
 
 	resultMove = rotatePoint90Degree(resultMove, boardWidth);
-	if (this->way == ControlSymmetric::Rotate270Flip0)
+	if (this->logicalVsPhysicalBoardSymmetricType == SymmetricType::ROTATE_270_FLIP_0)
 	{
 		return resultMove;
 	}
 
 	resultMove = flipPointVertically(logicalMove, boardWidth);
-	if (this->way == ControlSymmetric::Rotate0Flip1)
+	if (this->logicalVsPhysicalBoardSymmetricType == SymmetricType::ROTATE_000_FLIP_1)
 	{
 		return resultMove;
 	}
 
 	resultMove = rotatePoint90Degree(resultMove, boardWidth);
-	if (this->way == ControlSymmetric::Rotate90Flip1)
+	if (this->logicalVsPhysicalBoardSymmetricType == SymmetricType::ROTATE_090_FLIP_1)
 	{
 		return resultMove;
 	}
 
 	resultMove = rotatePoint90Degree(resultMove, boardWidth);
-	if (this->way == ControlSymmetric::Rotate180Flip1)
+	if (this->logicalVsPhysicalBoardSymmetricType == SymmetricType::ROTATE_180_FLIP_1)
 	{
 		return resultMove;
 	}
 
 	resultMove = rotatePoint90Degree(resultMove, boardWidth);
-	if (this->way == ControlSymmetric::Rotate270Flip1)
+	if (this->logicalVsPhysicalBoardSymmetricType == SymmetricType::ROTATE_270_FLIP_1)
 	{
 		return resultMove;
 	}

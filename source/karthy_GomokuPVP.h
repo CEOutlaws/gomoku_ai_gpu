@@ -34,7 +34,7 @@ namespace karthy
 		//get Index of the box which the mouse click on
 		Index GetBoxIndex(Point2i mouseCoor);
 
-		void executeMove(Move move);
+		virtual void executeMove(Move move);
 		void handleMoveConsequence(void);
 
 		void writeText(Text text);

@@ -5,7 +5,7 @@ using namespace karthy;
 GomokuRandomAgent::GomokuRandomAgent(GomokuPVE* gomokuGame)
 {
 	this->myPhysicalGame = gomokuGame;
-	emptyBoxCount = this->myPhysicalGame->board.colCount*this->myPhysicalGame->board.rowCount;
+	this->emptyBoxCount = 0;
 }
 
 
@@ -28,7 +28,7 @@ Move karthy::GomokuRandomAgent::takeTurn(void)
 
 	for (uint8_t boxIndexX = 0; boxIndexX < board.colCount; boxIndexX++)
 	{
-		for (uint8_t boxIndexY = 0; boxIndexY <board.rowCount; boxIndexY++)
+		for (uint8_t boxIndexY = 0; boxIndexY < board.rowCount; boxIndexY++)
 		{
 			Index boxIndex = Index(boxIndexX, boxIndexY);
 			if (board.getBoxStatus(boxIndex) == BoxStatus::HAVE_NO_STONE)
@@ -50,5 +50,6 @@ Move karthy::GomokuRandomAgent::takeTurn(void)
 
 void karthy::GomokuRandomAgent::getReady(Player myPlayer)
 {
-	this->emptyBoxCount -= (int)myPlayer;
+	this->myPlayer = myPlayer;
+	this->emptyBoxCount = this->myPhysicalGame->board.colCount*this->myPhysicalGame->board.rowCount - (uint16_t)myPlayer;
 }

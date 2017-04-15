@@ -6,10 +6,22 @@ karthy::GomokuEVE::GomokuEVE()
 {
 }
 
-karthy::GomokuEVE::GomokuEVE(uint8_t initBoardCols, uint8_t initStonesToWin, uint8_t aiDepth) : GomokuPVE(initBoardCols, initStonesToWin, aiDepth)
+karthy::GomokuEVE::GomokuEVE(uint8_t initBoardCols, uint8_t initStonesToWin, uint8_t aiDepth, AgentType adversaryAgentType, bool analyzing) : GomokuPVE(initBoardCols, initStonesToWin, aiDepth)
 {
 	//adversaryAgent = new GomokuSimpleAgent(this);
-	adversaryAgent = new GomokuRandomAgent(this);
+	this->analyzing = analyzing;
+	switch (adversaryAgentType)
+	{
+	case (AgentType::SIMPLE):
+		adversaryAgent = new GomokuSimpleAgent(this);
+		break;	
+	case (AgentType::RANDOM):
+		adversaryAgent = new GomokuRandomAgent(this);
+		break;
+	case (AgentType::AI):
+		adversaryAgent = new GomokuAIAgent(this);
+		break;
+	}	
 }
 
 
@@ -20,46 +32,68 @@ karthy::GomokuEVE::~GomokuEVE()
 
 void karthy::GomokuEVE::newGame(void)
 {
-	GomokuPVE::newGame();
+	GomokuPVP::newGame();
+
+	karthyCEO->getReady(Player::BLACK_PLAYER);
+	this->executeMove(this->karthyCEO->takeTurn());
+	
 	adversaryAgent->getReady(Player::WHITE_PLAYER);
 
 	while (1)
 	{
 		this->executeMove(adversaryAgent->takeTurn());
+		if (this->gameStatus == GameStatus::ENDED)
+		{
+			replay();
+			continue;
+		}
 		this->executeMove(karthyCEO->takeTurn());
+		if (this->gameStatus == GameStatus::ENDED)
+		{
+			replay();
+			continue;
+		}
 	}
 }
 
 void karthy::GomokuEVE::replay(void)
 {
-	GomokuPVE::replay();
+	GomokuPVP::newGame();
+
+	if (!this->analyzing)
+	{
+		this->loadMap();
+	}
+
+	Player karthyPreviousPlayer = karthyCEO->getPlayer();
+	karthyCEO->getReady(!karthyPreviousPlayer);
+
+	if (karthyCEO->getPlayer() == Player::BLACK_PLAYER)
+	{
+		this->executeMove(this->karthyCEO->takeTurn());
+	}
+
 	Player adversaryPreviousPlayer = adversaryAgent->getPlayer();
 	adversaryAgent->getReady(!adversaryPreviousPlayer);
-
-	while (1)
-	{
-		this->executeMove(adversaryAgent->takeTurn());
-		this->executeMove(karthyCEO->takeTurn());
-	}
 }
 
 void karthy::GomokuEVE::run(void)
 {
-	this->initGUI();
-	this->newGame();	
+	if (!this->analyzing) { this->initGUI(); }
+	this->newGame();
 }
 
 void karthy::GomokuEVE::executeMove(Move move)
 {
-	GomokuPVE::executeMove(move);
-	//GomokuGame::executeMove(move);
-
-	if (this->gameStatus == GameStatus::ENDED)
+	if (this->analyzing)
 	{
-		replay();
-		waitKey(0);
+		GomokuGame::executeMove(move);
+	}	
+	else
+	{
+		GomokuPVE::executeMove(move);
+		//waitKey(WAIT_MOVE_TIME);
 	}
-	waitKey(0);
 }
 
 void karthy::GomokuEVE::MouseHandler(int event, int x, int y)

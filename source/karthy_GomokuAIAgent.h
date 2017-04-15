@@ -31,18 +31,19 @@ namespace karthy
 			double alpha = 0.9;
 		} qLearningParameter;
 		
-		enum class ControlSymmetric : uint8_t
+		enum class SymmetricType : uint8_t
 		{
-			Rotate0Flip0 = 0,
-			Rotate90Flip0 = 1,
-			Rotate180Flip0 = 2,
-			Rotate270Flip0 = 3,
-			Rotate0Flip1 = 4,
-			Rotate90Flip1 = 5,
-			Rotate180Flip1 = 6,
-			Rotate270Flip1 = 7
+			NO_SYMETRIC = 0,
+			ROTATE_000_FLIP_0 = 1,
+			ROTATE_090_FLIP_0 = 2,
+			ROTATE_180_FLIP_0 = 3,
+			ROTATE_270_FLIP_0 = 4,
+			ROTATE_000_FLIP_1 = 5,
+			ROTATE_090_FLIP_1 = 6,
+			ROTATE_180_FLIP_1 = 7,
+			ROTATE_270_FLIP_1 = 8
 		};
-
+		
 		uint64_t currentStateId;
 		//parent of current node
 		uint64_t parrentStateId;
@@ -52,7 +53,7 @@ namespace karthy
 		AiInfo info;
 		DecisionTree decisionTree;
 		//the way symmetric
-		ControlSymmetric way;
+		SymmetricType logicalVsPhysicalBoardSymmetricType;
 		bool giveUp;
 
 		//build DecisionTree from root (the current game board state)
@@ -68,9 +69,9 @@ namespace karthy
 		Action* selectAction(DecisionTree& decisionTree, uint16_t& selectedActionOrder);
 
 		//check symmetric for reduction/mapping
-		bool isSymmetric(forward_list<Edge*>* currentNextNodeList, Move nextMoveToCheck, BoxStatus newBoxStatus, bool flagUpdate = false);
-		bool isSymmetric(GomokuBoard& board1, GomokuBoard& board2, bool flagUpdate = false);
-		bool isSymmetric(Mat& boxStatus1, Mat& boxStatus2, bool flagUpdate = false);
+		SymmetricType getSymmetricType(forward_list<Edge*>* currentNextNodeList, Move nextMoveToCheck, BoxStatus newBoxStatus);
+		SymmetricType getSymmetricType(GomokuBoard& board1, GomokuBoard& board2);
+		SymmetricType getSymmetricType(Mat& boxStatus1, Mat& boxStatus2);
 
 		//calculate Q match
 		void estimateNode(Node* currentNode, double reward);
@@ -94,7 +95,7 @@ namespace karthy
 		uint8_t depth;
 
 		//you have to define this->player yourself
-		GomokuAIAgent(GomokuPVE* gomokuPVE, uint8_t depth);
+		GomokuAIAgent(GomokuPVE* gomokuPVE, uint8_t depth = 1);
 		~GomokuAIAgent(void);
 
 		Move takeTurn(void);
