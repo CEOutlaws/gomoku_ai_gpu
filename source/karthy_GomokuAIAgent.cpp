@@ -286,7 +286,7 @@ bool isEqual(const Mat mat1, const Mat mat2) {
 	return nonZero == 0;
 }
 
-Mat rotateBoard(Mat board, double angle) {
+Mat rotateBoardByOpenCV(Mat board, double angle) {
 	Mat dst;
 	Point2i ptCp(board.cols >> 1, board.rows >> 1);
 	//gpu::rotate
@@ -294,7 +294,47 @@ Mat rotateBoard(Mat board, double angle) {
 	warpAffine(board, dst, temp, board.size(), cv::INTER_CUBIC); //Nearest is too rough 
 	return dst;
 }
-
+Point2i rotatePoint90Degree(Point2i point,uint8_t boardWidth);
+Point2i rotatePointAngle(Point2i point, double angle, uint8_t boardWidth)
+{
+	Point2i pointDst = point;
+	int numberRotate90;
+	if (angle == 90) numberRotate90 = 1;
+	if (angle == 180) numberRotate90 = 2;
+	if (angle == 270) numberRotate90 = 3;
+	for (int i = 0; i < numberRotate90; ++i)
+	{
+		pointDst = rotatePoint90Degree(pointDst,boardWidth);
+	}
+	return pointDst;
+}
+Mat rotateBoard(Mat board, double angle)
+{
+	Mat dst = board.clone();
+	if (angle == 0) return dst;
+	for (int i = 0; i < board.cols; ++i)
+	{
+		for (int j = 0; j < board.rows; j++)
+		{
+			dst.at<uchar>(rotatePointAngle(Point2i(i, j),angle,board.cols)) = board.at<uchar>(Point2i(i,j));
+		}
+	}
+	//printBoard(rotateBoardByOpenCV(board,angle));
+	return dst;
+}
+Point2i flipPointVertically(Point2i point, uint8_t boardWidth);
+Mat flipBoard(Mat board)
+{
+	Mat dst = board.clone();
+	for (int i = 0; i < board.cols; ++i)
+	{
+		for (int j = 0; j < board.rows; j++)
+		{
+			dst.at<uchar>(flipPointVertically(Point2i(i, j), board.cols)) = board.at<uchar>(Point2i(i, j));
+		}
+	}
+	return dst;
+}
 GomokuAIAgent::SymmetricType karthy::GomokuAIAgent::getSymmetricType(forward_list<Edge*>* currentNextNodeList, Move nextMoveToCheck, BoxStatus newBoxStatus)
 {
 	if (currentNextNodeList->empty() == true) { return SymmetricType::NO_SYMETRIC; }
@@ -356,7 +396,7 @@ GomokuAIAgent::SymmetricType karthy::GomokuAIAgent::getSymmetricType(Mat& boxSta
 	//0 flip Ox
 	//1 flip Oy
 	flip(boxStatus1, boardFlip, 1);
-
+	//boardFlip = flipBoard(boxStatus1);
 	if (isEqual(boxStatus2, boardFlip))
 	{
 		return SymmetricType::ROTATE_000_FLIP_1;
