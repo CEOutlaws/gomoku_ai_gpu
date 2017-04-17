@@ -1,6 +1,7 @@
 #pragma once
 #include "karthy_GomokuPVE.h"
-#include "karthy_GomokuRandomAgent.h"
+#include "karthy_GomokuUniformRandomAgent.h"
+#include "karthy_GomokuNormalRandomAgent.h"
 #include "karthy_GomokuSimpleAgent.h"
 #include "karthy_GomokuAiAgent.h"
 #include "karthy_Common.h"
@@ -14,8 +15,9 @@ namespace karthy
 	enum class AgentType : uint8_t
 	{
 		SIMPLE = 0,
-		RANDOM = 1,
+		UNIFORM_RANDOM = 1,
 		AI = 2,
+		NORMAL_RANDOM = 3
 	};
 
 	class GomokuEVE : GomokuPVE

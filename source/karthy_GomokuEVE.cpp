@@ -9,19 +9,23 @@ karthy::GomokuEVE::GomokuEVE()
 karthy::GomokuEVE::GomokuEVE(uint8_t initBoardCols, uint8_t initStonesToWin, uint8_t aiDepth, AgentType adversaryAgentType, GomokuAnalyzer* initAnalyser) : GomokuPVE(initBoardCols, initStonesToWin, aiDepth)
 {
 	//adversaryAgent = new GomokuSimpleAgent(this);
-	
+
 	this->analyserAgent = initAnalyser;
 	this->analyzing = initAnalyser->getFlagAnalazing();
+
 	switch (adversaryAgentType)
 	{
 	case (AgentType::SIMPLE):
 		adversaryAgent = new GomokuSimpleAgent(this);
 		break;	
-	case (AgentType::RANDOM):
-		adversaryAgent = new GomokuRandomAgent(this);
+	case (AgentType::UNIFORM_RANDOM):
+		adversaryAgent = new GomokuUniformRandomAgent(this);
 		break;
 	case (AgentType::AI):
 		adversaryAgent = new GomokuAIAgent(this);
+		break;
+	case (AgentType::NORMAL_RANDOM):
+		adversaryAgent = new GomokuNormalRandomAgent(this);
 		break;
 	}	
 }
@@ -38,7 +42,7 @@ void karthy::GomokuEVE::newGame(void)
 
 	karthyCEO->getReady(Player::BLACK_PLAYER);
 	this->executeMove(this->karthyCEO->takeTurn());
-	
+
 	adversaryAgent->getReady(Player::WHITE_PLAYER);
 
 	while (1)
@@ -46,7 +50,7 @@ void karthy::GomokuEVE::newGame(void)
 		this->executeMove(adversaryAgent->takeTurn());
 		if (this->gameStatus == GameStatus::ENDED)
 		{
-			
+
 			if (getWinner() != Player::NO_PLAYER)
 			{
 				this->analyserAgent->increaseNumWinner(false);
@@ -74,7 +78,6 @@ void karthy::GomokuEVE::newGame(void)
 		}
 	}
 }
-
 void karthy::GomokuEVE::replay(void)
 {
 	GomokuPVP::newGame();
@@ -106,32 +109,13 @@ void karthy::GomokuEVE::executeMove(Move move)
 {
 	if (this->analyzing)
 	{
-		this->latestMove = move;
-		this->board.setBoxStatus(move, (BoxStatus)this->activePlayer);
-		Player theWinner = getWinner();
-		if (theWinner == Player::NO_PLAYER)
-		{
-			if (!board.isFullBox())
-			{
-				switchPlayer();
-			}
-			else
-			{
-				gameStatus = GameStatus::ENDED;
-			}
-		}
-		else
-		{
-			gameStatus = GameStatus::ENDED;
-		}
+		GomokuGame::executeMove(move);	
 	}	
 	else
 	{
 		GomokuPVE::executeMove(move);
 		//waitKey(WAIT_MOVE_TIME);
 	}
-	
-
 }
 
 void karthy::GomokuEVE::MouseHandler(int event, int x, int y)

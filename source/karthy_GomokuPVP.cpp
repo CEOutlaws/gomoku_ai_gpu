@@ -2,7 +2,9 @@
 
 using namespace karthy;
 
-karthy::GomokuPVP::GomokuPVP() :GomokuPVP(19, 5) {}
+karthy::GomokuPVP::GomokuPVP()
+{
+}
 
 karthy::GomokuPVP::GomokuPVP(int boardCols, uint8_t stonesToWin) : GomokuGame(boardCols, stonesToWin)
 {

@@ -24,6 +24,7 @@ namespace karthy
 		//Gomoku is played on a square board
 		GomokuBoard board;
 
+		GomokuGame();
 		GomokuGame(int boardCols, uint8_t stonesToWin);
 		~GomokuGame();
 

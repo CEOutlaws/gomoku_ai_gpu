@@ -4,9 +4,14 @@ using namespace karthy;
 
 karthy::GomokuAIAgent::GomokuAIAgent(GomokuPVE* pveGame, uint8_t depth)
 {
+	std::random_device randomDevice;
+	this->generator = new std::mt19937(randomDevice());
+	this->distributor = new std::bernoulli_distribution(0.5);
+
 	this->myPhysicalGame = pveGame;
 	this->depth = depth;
 
+	this->maxActionCount = myPhysicalGame->board.colCount*myPhysicalGame->board.rowCount;
 	this->myPlayer = Player::NO_PLAYER;
 	this->myLogicalGame = new GomokuGame(myPhysicalGame->board.colCount, myPhysicalGame->getStoneToWin());
 	this->parrentStateId = UINT64_MAX;	//null value
@@ -19,6 +24,8 @@ karthy::GomokuAIAgent::GomokuAIAgent(GomokuPVE* pveGame, uint8_t depth)
 karthy::GomokuAIAgent::~GomokuAIAgent(void)
 {
 	this->info.save();
+	delete this->distributor;
+	delete this->generator;
 	delete this->myLogicalGame;
 }
 
@@ -62,6 +69,7 @@ Move karthy::GomokuAIAgent::takeTurn(void)
 
 		const Move logicalSelectedMove = Move(selectedAction->x, selectedAction->y);
 		this->myLogicalGame->executeMove(logicalSelectedMove);
+		this->maxActionCount--;
 
 		this->parrentStateId = this->currentStateId;
 		this->currentStateId = selectedAction->otherNode->getId();
@@ -79,6 +87,7 @@ void karthy::GomokuAIAgent::getReady(Player myPlayer)
 	this->myPlayer = myPlayer;
 	this->info.save();
 	this->giveUp = false;
+	this->maxActionCount = myPhysicalGame->board.colCount*myPhysicalGame->board.rowCount;
 }
 
 void karthy::GomokuAIAgent::buildDecisionTree(void)
@@ -108,7 +117,7 @@ void karthy::GomokuAIAgent::addAvailableAction(State* toState, uint8_t depth)
 		newStateFile = std::ofstream(KARTHY_MEMORY_PATH + to_string(toState->getId()));
 	}
 	string line;
-
+	uint16_t maxAvailableSymmetricAction = this->maxActionCount * 2 / 3;
 	if (toState->edgeList == NULL)
 	{
 		toState->edgeList = new forward_list<Action*>;
@@ -121,7 +130,10 @@ void karthy::GomokuAIAgent::addAvailableAction(State* toState, uint8_t depth)
 
 				Move& nextMove = boxIndex;
 
-				if (getSymmetricType(toState->edgeList, nextMove, (BoxStatus)(toState->data->type)) != SymmetricType::NO_SYMETRIC) { continue; }
+				if (this->decisionTree.actionCount < maxAvailableSymmetricAction && getSymmetricType(toState->edgeList, nextMove, (BoxStatus)(toState->data->type)) != SymmetricType::NO_SYMETRIC) 
+				{ 
+					continue; 
+				}
 
 				Move previousLatestMove = this->myLogicalGame->latestMove;
 				this->myLogicalGame->latestMove = nextMove;
@@ -163,6 +175,8 @@ void karthy::GomokuAIAgent::addAvailableAction(State* toState, uint8_t depth)
 					newStateFile << qValue << '\n';
 					newStateFile << stateAfterNewAvailableActionId << '\n';		
 				}
+
+				this->decisionTree.actionCount++;
 				State* stateAfterNewAvailableAction = new State(stateAfterNewAvailableActionId, !toState->data->type);
 				Action* newAvailableAction = new Action(nextMove.x, nextMove.y, qValue, stateAfterNewAvailableAction);
 				toState->addEdge(newAvailableAction);
@@ -199,83 +213,64 @@ void karthy::GomokuAIAgent::addAvailableAction(State* toState, uint8_t depth)
 Action* karthy::GomokuAIAgent::selectAction(DecisionTree& decisionTree, uint16_t& selectedActionOrder)
 {
 	Action* selectedAction = NULL;
-	
 	selectedActionOrder = 0;
-	std::random_device randomDevice;  //Will be used to obtain a seed for the random number engine
-	std::mt19937 generator(randomDevice()); //Standard mersenne_twister_engine seeded with rd()
-	std::uniform_int_distribution<> distributor(0,100);
-	int explorationRate = (int)distributor(generator);
-	if (explorationRate < EXPLORATON_NEW_PATH)
-	{
-		//find path have max Qvalue
-		if (!decisionTree.root->edgeList->empty())
-		{
-			uint16_t actionCount = 0;
+	uint16_t actionCount = 0;
 
+	bool exploit = (*this->distributor)(*this->generator);
+	if (exploit)
+	{
+		for (forward_list<Action*>::iterator it = decisionTree.root->edgeList->begin();
+			it != decisionTree.root->edgeList->end();
+			++it)
+		{
+			if (selectedAction == NULL || selectedAction->qValue < (*it)->qValue)
+			{
+				selectedAction = (*it);
+				selectedActionOrder = actionCount;
+			}
+			actionCount++;
+		}
+	}
+	else //explore
+	{
+		bool flagHaveCleanPath = false;
+		selectedAction = *(decisionTree.root->edgeList->begin());
+
+		for (forward_list<Action*>::iterator it = decisionTree.root->edgeList->begin();
+			it != decisionTree.root->edgeList->end();
+			++it)
+		{
+			if (selectedAction->qValue == 0)
+			{
+				flagHaveCleanPath = true;
+				selectedAction = (*it);
+				selectedActionOrder = actionCount;
+				break;
+			}
+			actionCount++;
+		}
+
+		if (flagHaveCleanPath == false)
+		{
+			std::uniform_int_distribution<> distributorAction(0, actionCount - 1);
+			actionCount = 0;
+			int explorationChildNode = (int)distributorAction(*this->generator);
 			for (forward_list<Action*>::iterator it = decisionTree.root->edgeList->begin();
 				it != decisionTree.root->edgeList->end();
 				++it)
 			{
-				if (selectedAction == NULL || selectedAction->qValue < (*it)->qValue)
+				if (actionCount == explorationChildNode)
 				{
 					selectedAction = (*it);
 					selectedActionOrder = actionCount;
-				}
-				actionCount++;
-			}
-
-			selectedActionOrder = actionCount - 1 - selectedActionOrder;
-		}
-		else
-		{
-			cout << "No action available" << endl;
-		}
-	}
-	else
-	{
-		//find new path 
-		if (!decisionTree.root->edgeList->empty())
-		{
-			uint16_t actionCount = 0;
-			bool flagHaveCleanPath = false;
-			selectedAction = *(decisionTree.root->edgeList->begin());
-			for (forward_list<Action*>::iterator it = decisionTree.root->edgeList->begin();
-				it != decisionTree.root->edgeList->end();
-				++it)
-			{
-				if (selectedAction->qValue == 0)
-				{
-					flagHaveCleanPath = true;
-					selectedAction = (*it);
-					selectedActionOrder = actionCount;
-				}
-				actionCount++;
-			}
-			if (flagHaveCleanPath == false)
-			{
-				std::uniform_int_distribution<> distributorAction(0, actionCount-1);
-				actionCount = 0;
-				int explorationChildNode = (int)distributorAction(generator);
-				for (forward_list<Action*>::iterator it = decisionTree.root->edgeList->begin();
-					it != decisionTree.root->edgeList->end();
-					++it)
-				{
-					if (actionCount == explorationChildNode)
-					{
-						selectedAction = (*it);
-						selectedActionOrder = actionCount;
-					}
-					actionCount++;
+					break;
 				}
 			}
-			selectedActionOrder = actionCount - 1 - selectedActionOrder;
-		}
-		else
-		{
-			cout << "No action available" << endl;
+			actionCount++;
 		}
 	}
 
+	selectedActionOrder = this->decisionTree.actionCount - 1 - selectedActionOrder;
 	return selectedAction;
 }
 
@@ -294,7 +289,8 @@ Mat rotateBoardByOpenCV(Mat board, double angle) {
 	warpAffine(board, dst, temp, board.size(), cv::INTER_CUBIC); //Nearest is too rough 
 	return dst;
 }
-Point2i rotatePoint90Degree(Point2i point,uint8_t boardWidth);
+
+Point2i rotatePoint90Degree(Point2i point, uint8_t boardWidth);
 Point2i rotatePointAngle(Point2i point, double angle, uint8_t boardWidth)
 {
 	Point2i pointDst = point;
@@ -304,7 +300,7 @@ Point2i rotatePointAngle(Point2i point, double angle, uint8_t boardWidth)
 	if (angle == 270) numberRotate90 = 3;
 	for (int i = 0; i < numberRotate90; ++i)
 	{
-		pointDst = rotatePoint90Degree(pointDst,boardWidth);
+		pointDst = rotatePoint90Degree(pointDst, boardWidth);
 	}
 	return pointDst;
 }
@@ -316,7 +312,7 @@ Mat rotateBoard(Mat board, double angle)
 	{
 		for (int j = 0; j < board.rows; j++)
 		{
-			dst.at<uchar>(rotatePointAngle(Point2i(i, j),angle,board.cols)) = board.at<uchar>(Point2i(i,j));
+			dst.at<uchar>(rotatePointAngle(Point2i(i, j), angle, board.cols)) = board.at<uchar>(Point2i(i, j));
 		}
 	}
 	//printBoard(rotateBoardByOpenCV(board,angle));
@@ -335,6 +331,7 @@ Mat flipBoard(Mat board)
 	}
 	return dst;
 }
+
 GomokuAIAgent::SymmetricType karthy::GomokuAIAgent::getSymmetricType(forward_list<Edge*>* currentNextNodeList, Move nextMoveToCheck, BoxStatus newBoxStatus)
 {
 	if (currentNextNodeList->empty() == true) { return SymmetricType::NO_SYMETRIC; }
@@ -395,8 +392,9 @@ GomokuAIAgent::SymmetricType karthy::GomokuAIAgent::getSymmetricType(Mat& boxSta
 	//gpu::flip(boardFlip, boxStatus1, 0);
 	//0 flip Ox
 	//1 flip Oy
-	flip(boxStatus1, boardFlip, 1);
-	//boardFlip = flipBoard(boxStatus1);
+	boardFlip = flipBoard(boxStatus1);
+//	cv::flip(boxStatus1, boardFlip, 1);
+
 	if (isEqual(boxStatus2, boardFlip))
 	{
 		return SymmetricType::ROTATE_000_FLIP_1;
@@ -525,22 +523,36 @@ uint64_t karthy::GomokuAIAgent::locateCurrentStateId(Move& adversaryMove, Gomoku
 		this->buildDecisionTree();
 		State* currentState = this->decisionTree.root;
 
-		for (forward_list<Action*>::iterator it = currentState->edgeList->begin(); it != currentState->edgeList->end(); ++it)
+		Move logicalMove;
+		forward_list<Action*>::iterator it;
+		for (it = currentState->edgeList->begin(); it != currentState->edgeList->end(); ++it)
 		{
-			const Move logicalMove = Move((*it)->x, (*it)->y);
-			this->myLogicalGame->board.setBoxStatus(logicalMove, (BoxStatus)!this->myPlayer);
-			//
-			this->logicalVsPhysicalBoardSymmetricType = getSymmetricType(this->myLogicalGame->board, physicalGameBoard);
-			this->myLogicalGame->board.setBoxStatus(logicalMove, BoxStatus::HAVE_NO_STONE);
-
-			//check if got adversary's move
-			if (this->logicalVsPhysicalBoardSymmetricType != SymmetricType::NO_SYMETRIC)
+			logicalMove = Move((*it)->x, (*it)->y);
+			if (this->decisionTree.actionCount == this->maxActionCount)
 			{
-				result = (*it)->otherNode->getId();
-				this->myLogicalGame->executeMove(logicalMove);
-				break;
+				if (convertToPhysicalMove(logicalMove) == adversaryMove)
+				{
+					break;
+				}
 			}
+			else
+			{
+				this->myLogicalGame->board.setBoxStatus(logicalMove, (BoxStatus)!this->myPlayer);
+				SymmetricType newLogicalVsPhysicalBoardSymmetricType = getSymmetricType(this->myLogicalGame->board, physicalGameBoard);
+				this->myLogicalGame->board.setBoxStatus(logicalMove, BoxStatus::HAVE_NO_STONE);
+
+				//check if got adversary's move
+				if (newLogicalVsPhysicalBoardSymmetricType != SymmetricType::NO_SYMETRIC)
+				{
+					this->logicalVsPhysicalBoardSymmetricType = newLogicalVsPhysicalBoardSymmetricType;
+					break;
+				}
+			}		
 		}
+		
+		result = (*it)->otherNode->getId();
+		this->myLogicalGame->executeMove(logicalMove);
+		this->maxActionCount--;
 	}
 
 	return result;

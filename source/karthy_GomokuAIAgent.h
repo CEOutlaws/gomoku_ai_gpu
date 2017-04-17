@@ -1,17 +1,12 @@
 #pragma once
 #include "karthy_GomokuPVE.h"
 #include "karthy_GomokuAgent.h"
-#include "karthy_Tree.h"
+#include "karthy_DecisionTree.h"
 #include "karthy_AiInfo.h"
 #include <random>
 
-#define EXPLORATON_NEW_PATH 50
 namespace karthy
 {
-	typedef Tree DecisionTree;
-	typedef Node State;
-	typedef Edge Action;
-
 	class GomokuAgent;
 	class GomokuPVE;
 	class GomokuAIAgent : public GomokuAgent
@@ -46,6 +41,7 @@ namespace karthy
 			ROTATE_270_FLIP_1 = 8
 		};
 		
+		uint16_t maxActionCount;
 		uint64_t currentStateId;
 		//parent of current node
 		uint64_t parrentStateId;
@@ -58,6 +54,9 @@ namespace karthy
 		SymmetricType logicalVsPhysicalBoardSymmetricType;
 		bool giveUp;
 
+		std::mt19937* generator;
+		std::bernoulli_distribution* distributor;
+
 		//build DecisionTree from root (the current game board state)
 		void buildDecisionTree(void);
 
@@ -69,7 +68,7 @@ namespace karthy
 
 		//given decision tree, select next action, and return that action's order
 		Action* selectAction(DecisionTree& decisionTree, uint16_t& selectedActionOrder);
-
+	
 		//check symmetric for reduction/mapping
 		SymmetricType getSymmetricType(forward_list<Edge*>* currentNextNodeList, Move nextMoveToCheck, BoxStatus newBoxStatus);
 		SymmetricType getSymmetricType(GomokuBoard& board1, GomokuBoard& board2);

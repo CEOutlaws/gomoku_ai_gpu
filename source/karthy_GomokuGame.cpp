@@ -2,6 +2,10 @@
 
 using namespace karthy;
 
+karthy::GomokuGame::GomokuGame()
+{
+}
+
 karthy::GomokuGame::GomokuGame(int boardCols, uint8_t stonesToWin)
 {
 	board.colCount = boardCols;
@@ -52,7 +56,23 @@ void karthy::GomokuGame::executeMove(Move move)
 {
 	this->latestMove = move;
 	this->board.setBoxStatus(move, (BoxStatus)this->activePlayer);
-	this->switchPlayer();
+
+	Player theWinner = this->getWinner();
+	if (theWinner == Player::NO_PLAYER)
+	{
+		if (!board.isFullBox())
+		{
+			this->switchPlayer();
+		}
+		else
+		{
+			this->gameStatus = GameStatus::ENDED;
+		}
+	}
+	else
+	{
+		this->gameStatus = GameStatus::ENDED;
+	}
 }
 
 bool karthy::GomokuGame::isVerticalEnd(void)

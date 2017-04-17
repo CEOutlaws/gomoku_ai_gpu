@@ -19,9 +19,10 @@
 #define KARTHY_MEMORY_PATH "D:\\karthy_memory\\"
 //".." is the folder where file.sln is located
 //#define KARTHY_MEMORY_PATH "../karthy_memory/"
-#define BACK_GROUND_PATH "D:\\background\\caro_background.jpg"
-//#define BACK_GROUND_PATH "../background/caro_background.jpg"
+#define BACK_GROUND_PATH "D:\\karthy_background\\caro_background.jpg"
+//#define BACK_GROUND_PATH "../karthy_background/caro_background.jpg"
 #define DATABASE_ANALYZER_PATH "D:\\karthy_analyzer\\analyzer.csv"
+//#define DATABASE_ANALYZER_PATH "../karthy_analyzer/analyzer.csv"
 
 using namespace cv;
 

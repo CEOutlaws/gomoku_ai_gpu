@@ -12,7 +12,7 @@ namespace karthy
 		~Tree();
 
 		//clear the content in Tree
-		void clear();
+		virtual void clear();
 	};
 }
 
