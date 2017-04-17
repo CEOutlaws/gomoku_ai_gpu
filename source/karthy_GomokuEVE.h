@@ -4,11 +4,13 @@
 #include "karthy_GomokuSimpleAgent.h"
 #include "karthy_GomokuAiAgent.h"
 #include "karthy_Common.h"
+#include "karthy_GomokuAnalyser.h"
 
 #define WAIT_MOVE_TIME (10)
 
 namespace karthy
 {
+	class GomokuAnalyzer;
 	enum class AgentType : uint8_t
 	{
 		SIMPLE = 0,
@@ -20,10 +22,14 @@ namespace karthy
 	{
 	private:
 		bool analyzing;
+		GomokuAnalyzer* analyserAgent;
 		GomokuAgent* adversaryAgent;
 	public:
 		GomokuEVE();
-		GomokuEVE(uint8_t initBoardCols, uint8_t initStonesToWin, uint8_t aiDepth = 1, AgentType adversaryAgentType = AgentType::SIMPLE,  bool analyzing = 0);
+		//GomokuEVE(uint8_t initBoardCols, uint8_t initStonesToWin, uint8_t aiDepth =1
+		//, AgentType adversaryAgentType = AgentType::SIMPLE, GomokuAnalyser* initAnalyser);
+		GomokuEVE(uint8_t initBoardCols, uint8_t initStonesToWin
+			, uint8_t aiDepth, AgentType adversaryAgentType, GomokuAnalyzer* initAnalyser);
 		~GomokuEVE();
 		void newGame(void);
 		void replay(void);

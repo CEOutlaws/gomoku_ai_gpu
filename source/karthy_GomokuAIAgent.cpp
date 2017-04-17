@@ -201,28 +201,79 @@ Action* karthy::GomokuAIAgent::selectAction(DecisionTree& decisionTree, uint16_t
 	Action* selectedAction = NULL;
 	
 	selectedActionOrder = 0;
-
-	if (!decisionTree.root->edgeList->empty())
+	std::random_device randomDevice;  //Will be used to obtain a seed for the random number engine
+	std::mt19937 generator(randomDevice()); //Standard mersenne_twister_engine seeded with rd()
+	std::uniform_int_distribution<> distributor(0,100);
+	int explorationRate = (int)distributor(generator);
+	if (explorationRate < EXPLORATON_NEW_PATH)
 	{
-		uint16_t actionCount = 0;
-		
-		for (forward_list<Action*>::iterator it = decisionTree.root->edgeList->begin();
-			it != decisionTree.root->edgeList->end(); 
-			++it)
+		//find path have max Qvalue
+		if (!decisionTree.root->edgeList->empty())
 		{
-			if (selectedAction == NULL || selectedAction->qValue < (*it)->qValue)
-			{
-				selectedAction = (*it);
-				selectedActionOrder = actionCount;
-			}
-			actionCount++;
-		}
+			uint16_t actionCount = 0;
 
-		selectedActionOrder = actionCount - 1 - selectedActionOrder;
+			for (forward_list<Action*>::iterator it = decisionTree.root->edgeList->begin();
+				it != decisionTree.root->edgeList->end();
+				++it)
+			{
+				if (selectedAction == NULL || selectedAction->qValue < (*it)->qValue)
+				{
+					selectedAction = (*it);
+					selectedActionOrder = actionCount;
+				}
+				actionCount++;
+			}
+
+			selectedActionOrder = actionCount - 1 - selectedActionOrder;
+		}
+		else
+		{
+			cout << "No action available" << endl;
+		}
 	}
 	else
 	{
-		cout << "No action available" << endl;
+		//find new path 
+		if (!decisionTree.root->edgeList->empty())
+		{
+			uint16_t actionCount = 0;
+			bool flagHaveCleanPath = false;
+			selectedAction = *(decisionTree.root->edgeList->begin());
+			for (forward_list<Action*>::iterator it = decisionTree.root->edgeList->begin();
+				it != decisionTree.root->edgeList->end();
+				++it)
+			{
+				if (selectedAction->qValue == 0)
+				{
+					flagHaveCleanPath = true;
+					selectedAction = (*it);
+					selectedActionOrder = actionCount;
+				}
+				actionCount++;
+			}
+			if (flagHaveCleanPath == false)
+			{
+				std::uniform_int_distribution<> distributorAction(0, actionCount-1);
+				actionCount = 0;
+				int explorationChildNode = (int)distributorAction(generator);
+				for (forward_list<Action*>::iterator it = decisionTree.root->edgeList->begin();
+					it != decisionTree.root->edgeList->end();
+					++it)
+				{
+					if (actionCount == explorationChildNode)
+					{
+						selectedAction = (*it);
+						selectedActionOrder = actionCount;
+					}
+					actionCount++;
+				}
+			}
+			selectedActionOrder = actionCount - 1 - selectedActionOrder;
+		}
+		else
+		{
+			cout << "No action available" << endl;
+		}
 	}
 
 	return selectedAction;

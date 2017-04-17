@@ -3,7 +3,9 @@
 #include "karthy_GomokuAgent.h"
 #include "karthy_Tree.h"
 #include "karthy_AiInfo.h"
+#include <random>
 
+#define EXPLORATON_NEW_PATH 50
 namespace karthy
 {
 	typedef Tree DecisionTree;

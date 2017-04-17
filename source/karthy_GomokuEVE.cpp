@@ -6,10 +6,12 @@ karthy::GomokuEVE::GomokuEVE()
 {
 }
 
-karthy::GomokuEVE::GomokuEVE(uint8_t initBoardCols, uint8_t initStonesToWin, uint8_t aiDepth, AgentType adversaryAgentType, bool analyzing) : GomokuPVE(initBoardCols, initStonesToWin, aiDepth)
+karthy::GomokuEVE::GomokuEVE(uint8_t initBoardCols, uint8_t initStonesToWin, uint8_t aiDepth, AgentType adversaryAgentType, GomokuAnalyzer* initAnalyser) : GomokuPVE(initBoardCols, initStonesToWin, aiDepth)
 {
 	//adversaryAgent = new GomokuSimpleAgent(this);
-	this->analyzing = analyzing;
+	
+	this->analyserAgent = initAnalyser;
+	this->analyzing = initAnalyser->getFlagAnalazing();
 	switch (adversaryAgentType)
 	{
 	case (AgentType::SIMPLE):
@@ -44,12 +46,29 @@ void karthy::GomokuEVE::newGame(void)
 		this->executeMove(adversaryAgent->takeTurn());
 		if (this->gameStatus == GameStatus::ENDED)
 		{
+			
+			if (getWinner() != Player::NO_PLAYER)
+			{
+				this->analyserAgent->increaseNumWinner(false);
+			}
+			else
+			{
+				this->analyserAgent->increaseNumDrawMatch();
+			}
 			replay();
 			continue;
 		}
 		this->executeMove(karthyCEO->takeTurn());
 		if (this->gameStatus == GameStatus::ENDED)
 		{
+			if (getWinner() != Player::NO_PLAYER)
+			{
+				this->analyserAgent->increaseNumWinner(true);
+			}
+			else
+			{
+				this->analyserAgent->increaseNumDrawMatch();
+			}
 			replay();
 			continue;
 		}
@@ -87,13 +106,32 @@ void karthy::GomokuEVE::executeMove(Move move)
 {
 	if (this->analyzing)
 	{
-		GomokuGame::executeMove(move);
+		this->latestMove = move;
+		this->board.setBoxStatus(move, (BoxStatus)this->activePlayer);
+		Player theWinner = getWinner();
+		if (theWinner == Player::NO_PLAYER)
+		{
+			if (!board.isFullBox())
+			{
+				switchPlayer();
+			}
+			else
+			{
+				gameStatus = GameStatus::ENDED;
+			}
+		}
+		else
+		{
+			gameStatus = GameStatus::ENDED;
+		}
 	}	
 	else
 	{
 		GomokuPVE::executeMove(move);
 		//waitKey(WAIT_MOVE_TIME);
 	}
+	
+
 }
 
 void karthy::GomokuEVE::MouseHandler(int event, int x, int y)
