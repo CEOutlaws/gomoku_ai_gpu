@@ -4,4 +4,4 @@ Gomoku is a fascinating game that has yet to be played well by a computer progra
 
 It require Visual Studio 2015 upper, OpenCV 3.2, Cuda 8.0.
 
-We are student of Bach Khoa University in Viet Nam. This reposity is own research about AI and CUDA. All information is include on document "Report" in this reposity. 
+We are student of Bach Khoa University in Viet Nam. This reposity is own research about AI and CUDA. All detail design is described on "report" document.
